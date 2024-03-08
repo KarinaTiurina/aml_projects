@@ -19,7 +19,7 @@ class IRLS:
         self._beta = np.dot(inv_m1, m2)
 
     def _update_weights(self, X, y):
-        residuals = np.abs(y - self.predict_proba(X))
+        residuals = np.abs(y - self.predict_proba(X, prepare=False))
         if self._p == 1:
             residuals[residuals < self._delta] = self._delta
         weights_diag = np.power(residuals, self._p - 2)
@@ -33,6 +33,10 @@ class IRLS:
         self._update_beta(X, y)
         self._update_weights(X, y)
         self._n_iter += 1
+
+    def _prepare_x(self, X):
+        ones = np.ones(X.shape[0])
+        return np.concatenate([ones, X], 0)
 
     def fit(self, X, y, interactions: List[Tuple[int, int]] = None):
         classes = list(np.unique(y))
@@ -53,6 +57,7 @@ class IRLS:
         if len(y.shape) == 1:
             y = y.reshape((y.shape[0], 1))
 
+        X = self._prepare_x(X)
         ncol = X.shape[1]
         self._weights = np.diag(np.ones(ncol))
 
@@ -62,10 +67,11 @@ class IRLS:
             except StopIteration:
                 break
 
-    def predict_proba(self, X):
+    def predict_proba(self, X, prepare=True):
         if self._weights is None or self._beta is None:
             raise ValueError("Start with fitting the model")
-
+        if prepare:
+            X = self._prepare_x(X)
         return 1/(1 + np.exp(-np.dot(X, self._beta)))
 
     def predict(self, X):
