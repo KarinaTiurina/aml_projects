@@ -42,3 +42,17 @@ def read_Online_Shoppers_intention(filepath):
   y = df['Revenue'].values
   X = df.drop(columns=['Revenue']).values
   return X, y
+
+def read_Multiple_Disease_Prediction(filepath):
+  """
+  Multiple Disease Prediction
+  https://www.kaggle.com/datasets/ehababoelnaga/multiple-disease-prediction?select=Blood_samples_dataset_balanced_2%28f%29.csv
+  """
+  # 0 - Healthy
+  # 1 - Any disease
+  df = pd.read_csv(filepath)
+  df['Disease'] = df['Disease'].replace('Healthy', 0)
+  df[df['Disease'] != 0] = 1
+  y = df['Disease'].values
+  X = df.drop(columns=['Disease']).values
+  return X, y
