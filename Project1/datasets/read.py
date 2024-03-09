@@ -56,3 +56,13 @@ def read_Multiple_Disease_Prediction(filepath):
   y = df['Disease'].values
   X = df.drop(columns=['Disease']).values
   return X, y
+
+def read_Web_Page_Phishing(filepath):
+  """
+  Web Page Phishing
+  https://www.kaggle.com/datasets/danielfernandon/web-page-phishing-dataset
+  """
+  df = pd.read_csv(filepath)
+  y = df['phishing'].values
+  X = df.drop(columns=['phishing']).values
+  return X, y
