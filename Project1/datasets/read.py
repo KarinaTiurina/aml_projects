@@ -67,18 +67,20 @@ def read_Web_Page_Phishing(filepath):
   X = df.drop(columns=['phishing']).values
   return X, y
 
-def read_Lung_Cancer_Dataset(filepath):
+def read_Dataset_for_Link_Phishing(filepath):
   """
-  Lung Cancer Dataset
-  https://www.kaggle.com/datasets/shreyasparaj1/lung-cancer-dataset
+  Dataset for Link Phishing
+  https://www.kaggle.com/datasets/winson13/dataset-for-link-phishing-detection
   """
-  df = pd.read_csv(filepath)
-  # M -> 1
-  # F -> 0
-  df['GENDER'] = df['GENDER'].replace('M', 1)
-  df['GENDER'] = df['GENDER'].replace('F', 0)
-  df['LUNG_CANCER'] = df['LUNG_CANCER'].replace('YES', 1)
-  df['LUNG_CANCER'] = df['LUNG_CANCER'].replace('NO', 0)
-  y = df['LUNG_CANCER'].values
-  X = df.drop(columns=['LUNG_CANCER']).values
+  df = pd.read_csv(filepath, low_memory=False)
+  df = df.drop(columns=['Unnamed: 0', 'url'])
+  df['domain_with_copyright'].unique()
+  df['domain_with_copyright'] = df['domain_with_copyright'].replace('one', 1)
+  df['domain_with_copyright'] = df['domain_with_copyright'].replace('One', 1)
+  df['domain_with_copyright'] = df['domain_with_copyright'].replace('zero', 0)
+  df['domain_with_copyright'] = df['domain_with_copyright'].replace('Zero', 0)
+  df['status'] = df['status'].replace('phishing', 1)
+  df['status'] = df['status'].replace('legitimate', 0)
+  y = df['status'].values
+  X = df.drop(columns=['status']).values
   return X, y
