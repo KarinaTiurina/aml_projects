@@ -165,3 +165,5 @@ cython_debug/
 # /Project1/datasets/data/Multiple Disease Prediction
 # /Project1/datasets/data/Web Page Phishing
 # /Project1/datasets/data/Dataset for Link Phishing
+
+.DS_Store
