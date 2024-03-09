@@ -13,6 +13,21 @@ def read_Rice_Cammeo_Osmancik():
     df['Class'] = df['Class'].astype(str)
     df['Class'] = df['Class'].replace('Cammeo', 1)
     df['Class'] = df['Class'].replace('Osmancik', 0)
+
+    # Clean the data - remove the rows with missing values
+    df = df.dropna()
+
+    # Clean the data - remove collinear features
+    # find the collinear features
+    corr = df.corr()
+
+    collinear_features = set()
+    for i in range(corr.shape[0]):
+        for j in range(i + 1, corr.shape[0]):
+            if abs(corr.iloc[i, j]) > 0.8:
+                collinear_features.add(df.columns[i])
+                collinear_features.add(df.columns[j])
+
     y = df['Class'].values
     X = df.drop(columns=['Class']).values
     return X, y
@@ -42,6 +57,23 @@ def read_Online_Shoppers_intention():
     df['Revenue'] = df['Revenue'].replace(False, 0)
     df['Revenue'] = df['Revenue'].replace(True, 1)
 
+    # Clean the data - remove the rows with missing values
+    df = df.dropna()
+
+    # Clean the data - remove collinear features
+    # find the collinear features
+    corr = df.corr()
+
+    collinear_features = set()
+    for i in range(corr.shape[0]):
+        for j in range(i + 1, corr.shape[0]):
+            if abs(corr.iloc[i, j]) > 0.8:
+                collinear_features.add(df.columns[i])
+                collinear_features.add(df.columns[j])
+
+    # remove the collinear features
+    df = df.drop(columns=list(collinear_features))
+
     y = df['Revenue'].values
     X = df.drop(columns=['Revenue']).values
     return X, y
@@ -58,18 +90,56 @@ def read_Multiple_Disease_Prediction():
     df = pd.read_csv(filepath)
     df['Disease'] = df['Disease'].replace('Healthy', 0)
     df[df['Disease'] != 0] = 1
+
+    # Clean the data - remove the rows with missing values
+    df = df.dropna()
+
+    # Clean the data - remove collinear features
+    # find the collinear features
+    corr = df.corr()
+
+    collinear_features = set()
+    for i in range(corr.shape[0]):
+        for j in range(i + 1, corr.shape[0]):
+            if abs(corr.iloc[i, j]) > 0.95:
+                collinear_features.add(df.columns[i])
+                collinear_features.add(df.columns[j])
+
+    # do not remove the target column
+    collinear_features.remove('Disease')
+    # remove the collinear features
+    df = df.drop(columns=list(collinear_features))
+
     y = df['Disease'].values
     X = df.drop(columns=['Disease']).values
     return X, y
 
 
-def read_Web_Page_Phishing(filepath):
+def read_Web_Page_Phishing():
     """
     Web Page Phishing
     https://www.kaggle.com/datasets/danielfernandon/web-page-phishing-dataset
     """
     filepath = 'data/Web Page Phishing/web-page-phishing.csv'
     df = pd.read_csv(filepath)
+
+    # Clean the data - remove the rows with missing values
+    df = df.dropna()
+
+    # Clean the data - remove collinear features
+    # find the collinear features
+    corr = df.corr()
+
+    collinear_features = set()
+    for i in range(corr.shape[0]):
+        for j in range(i + 1, corr.shape[0]):
+            if abs(corr.iloc[i, j]) > 0.8:
+                collinear_features.add(df.columns[i])
+                collinear_features.add(df.columns[j])
+
+    # remove the collinear features
+    df = df.drop(columns=list(collinear_features))
+
     y = df['phishing'].values
     X = df.drop(columns=['phishing']).values
     return X, y
@@ -90,6 +160,24 @@ def read_Dataset_for_Link_Phishing():
     df['domain_with_copyright'] = df['domain_with_copyright'].replace('Zero', 0)
     df['status'] = df['status'].replace('phishing', 1)
     df['status'] = df['status'].replace('legitimate', 0)
+
+    # Clean the data - remove the rows with missing values
+    df = df.dropna()
+
+    # Clean the data - remove collinear features
+    # find the collinear features
+    corr = df.corr()
+
+    collinear_features = set()
+    for i in range(corr.shape[0]):
+        for j in range(i + 1, corr.shape[0]):
+            if abs(corr.iloc[i, j]) > 0.8:
+                collinear_features.add(df.columns[i])
+                collinear_features.add(df.columns[j])
+
+    # remove the collinear features
+    df = df.drop(columns=list(collinear_features))
+
     y = df['status'].values
     X = df.drop(columns=['status']).values
     return X, y
@@ -115,8 +203,8 @@ def read_Statlog_Shuttle():
     for i in range(corr.shape[0]):
         for j in range(i + 1, corr.shape[0]):
             if abs(corr.iloc[i, j]) > 0.8:
-                collinear_features.add(i)
-                collinear_features.add(j)
+                collinear_features.add(df.columns[i])
+                collinear_features.add(df.columns[j])
 
     # remove the collinear features
     df = df.drop(columns=list(collinear_features))
@@ -149,8 +237,8 @@ def read_Banknote_Authentication():
     for i in range(corr.shape[0]):
         for j in range(i + 1, corr.shape[0]):
             if abs(corr.iloc[i, j]) > 0.8:
-                collinear_features.add(i)
-                collinear_features.add(j)
+                collinear_features.add(df.columns[i])
+                collinear_features.add(df.columns[j])
 
     # remove the collinear features
     df = df.drop(columns=list(collinear_features))
@@ -158,4 +246,91 @@ def read_Banknote_Authentication():
     y = df[4].values
     X = df.drop(columns=[4]).values
 
+    return X, y
+
+
+def read_Airline_Passenger_Satisfaction():
+    """
+    Airline Passenger Satisfaction
+    https://www.kaggle.com/datasets/teejmahal20/airline-passenger-satisfaction
+    """
+    filepaths = ['data/Airline Passenger Satisfaction/train.csv', 'data/Airline Passenger Satisfaction/test.csv']
+    df1 = pd.read_csv(filepaths[0])
+    df2 = pd.read_csv(filepaths[1])
+
+    df = pd.concat([df1, df2])
+
+    # drop unnecessary columns
+    df = df.drop(columns=['Unnamed: 0', 'id'])
+
+    # Encode the categorical features
+    df['Gender'] = df['Gender'].replace('Male', 1)
+    df['Gender'] = df['Gender'].replace('Female', 0)
+
+    df['Customer Type'] = df['Customer Type'].replace('Loyal Customer', 1)
+    df['Customer Type'] = df['Customer Type'].replace('disloyal Customer', 0)
+
+    df['Type of Travel'] = df['Type of Travel'].replace('Personal Travel', 1)
+    df['Type of Travel'] = df['Type of Travel'].replace('Business travel', 0)
+
+    df['Class'] = df['Class'].replace('Eco Plus', 2)
+    df['Class'] = df['Class'].replace('Business', 1)
+    df['Class'] = df['Class'].replace('Eco', 0)
+
+    df['satisfaction'] = df['satisfaction'].replace('neutral or dissatisfied', 0)
+    df['satisfaction'] = df['satisfaction'].replace('satisfied', 1)
+
+    # Clean the data - remove the rows with missing values
+    df = df.dropna()
+
+    # Clean the data - remove collinear features
+    # find the collinear features
+    corr = df.corr()
+
+    collinear_features = set()
+    for i in range(corr.shape[0]):
+        for j in range(i + 1, corr.shape[0]):
+            if abs(corr.iloc[i, j]) > 0.8:
+                collinear_features.add(df.columns[i])
+                collinear_features.add(df.columns[j])
+
+    # remove the collinear features
+    df = df.drop(columns=list(collinear_features))
+
+    y = df['satisfaction'].values
+    X = df.drop(columns=['satisfaction']).values
+    return X, y
+
+
+def read_Optdigits():
+    """
+    Optical Recognition of Handwritten Digits Data Set
+    https://www.openml.org/search?type=data&sort=qualities.NumberOfNumericFeatures&status=active&order=desc&qualities.NumberOfFeatures=between_10_100&qualities.NumberOfClasses=%3D_2&id=980
+    """
+    filepath = 'data/optdigits/optdigits.arff'
+    data, meta = arff.loadarff(filepath)
+    df = pd.DataFrame(data)
+
+    # Remap the labels: 1 - Positive, 0 - Negative
+    df['binaryClass'] = df['binaryClass'].replace(b'P', 1)
+    df['binaryClass'] = df['binaryClass'].replace(b'N', 0)
+
+    # Clean the data - remove the rows with missing values
+    df = df.dropna()
+
+    # Clean the data - remove collinear features
+    # find the collinear features
+    corr = df.corr()
+    collinear_features = set()
+    for i in range(corr.shape[0]):
+        for j in range(i + 1, corr.shape[0]):
+            if abs(corr.iloc[i, j]) > 0.8:
+                collinear_features.add(df.columns[i])
+                collinear_features.add(df.columns[j])
+
+    # remove the collinear features
+    df = df.drop(columns=list(collinear_features))
+
+    y = df['binaryClass'].values
+    X = df.drop(columns=['binaryClass']).values
     return X, y
