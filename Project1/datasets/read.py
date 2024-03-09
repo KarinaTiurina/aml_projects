@@ -66,3 +66,19 @@ def read_Web_Page_Phishing(filepath):
   y = df['phishing'].values
   X = df.drop(columns=['phishing']).values
   return X, y
+
+def read_Lung_Cancer_Dataset(filepath):
+  """
+  Lung Cancer Dataset
+  https://www.kaggle.com/datasets/shreyasparaj1/lung-cancer-dataset
+  """
+  df = pd.read_csv(filepath)
+  # M -> 1
+  # F -> 0
+  df['GENDER'] = df['GENDER'].replace('M', 1)
+  df['GENDER'] = df['GENDER'].replace('F', 0)
+  df['LUNG_CANCER'] = df['LUNG_CANCER'].replace('YES', 1)
+  df['LUNG_CANCER'] = df['LUNG_CANCER'].replace('NO', 0)
+  y = df['LUNG_CANCER'].values
+  X = df.drop(columns=['LUNG_CANCER']).values
+  return X, y
