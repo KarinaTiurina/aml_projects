@@ -1,6 +1,8 @@
 from typing import List, Tuple
 import numpy as np
 
+from models.util import ClassMapper
+
 
 class IRLS:
     def __init__(self, p: int = 2, iter_limit: int = 500, delta: float = 1E-4):
@@ -11,15 +13,17 @@ class IRLS:
         self._weights = None
         self._beta = None
         self._n_iter = 0
+        self._mapper = ClassMapper([-1, 1])
 
     def _update_beta(self, X, y):
         m1 = np.linalg.multi_dot([X.T, self._weights, X])
-        m2 = np.linalg.multi_dot([X.T, self._weights, y])
+        m2 = np.linalg.multi_dot([X.T, self._weights, y.reshape((y.shape[0], 1))])
         inv_m1 = np.linalg.inv(m1)
-        self._beta = np.dot(inv_m1, m2)
+        self._beta = np.dot(inv_m1, m2).flatten()
 
     def _update_weights(self, X, y):
-        residuals = np.abs(y - self.predict_proba(X, prepare=False))
+        y_pred = self.predict_proba(X, prepare=False)
+        residuals = np.abs(y - y_pred)
         if self._p == 1:
             residuals[residuals < self._delta] = self._delta
         weights_diag = np.power(residuals, self._p - 2)
@@ -35,13 +39,14 @@ class IRLS:
         self._n_iter += 1
 
     def _prepare_x(self, X):
-        ones = np.ones(X.shape[0])
-        return np.concatenate([ones, X], 0)
+        ones = np.ones(X.shape[0]).reshape((X.shape[0], 1))
+        return np.concatenate([ones, X], 1)
 
     def fit(self, X, y, interactions: List[Tuple[int, int]] = None):
-        classes = list(np.unique(y))
-        if len(classes) != 2 or -1 not in classes or 1 not in classes:
-            raise ValueError("y.classes != [-1, 1]")
+        yy = self._mapper.map_to_target(y)
+        classes = list(np.unique(yy))
+        if len(classes) != 2:
+            raise ValueError("y is not a binary vector")
 
         if self._weights is not None or self._beta is not None or self._n_iter != 0:
             raise ValueError("Model already fitted or corrupted")
@@ -54,18 +59,25 @@ class IRLS:
             Xint = np.concatenate(inter_cols, axis=0)
             X = np.concatenate([X, Xint], axis=0)
 
-        if len(y.shape) == 1:
-            y = y.reshape((y.shape[0], 1))
+        if len(yy.shape) != 1:
+            yy = yy.flatten()
 
         X = self._prepare_x(X)
-        ncol = X.shape[1]
-        self._weights = np.diag(np.ones(ncol))
+        nrow = X.shape[0]
+        self._weights = np.diag(np.ones(nrow))
 
         while True:
             try:
-                self._iteration(X, y)
+                self._iteration(X, yy)
             except StopIteration:
                 break
+
+    def log_odds(self, X, prepare=True):
+        if self._weights is None or self._beta is None:
+            raise ValueError("Start with fitting the model")
+        if prepare:
+            X = self._prepare_x(X)
+        return 1/(1 + np.exp(-np.dot(X, self._beta)))
 
     def predict_proba(self, X, prepare=True):
         if self._weights is None or self._beta is None:
@@ -76,9 +88,9 @@ class IRLS:
 
     def predict(self, X):
         probs = self.predict_proba(X)
-        probs[probs < 0] = -1
-        probs[probs >= 0] = 1
-        return probs
+        probs[probs < 0.5] = -1
+        probs[probs >= 0.5] = 1
+        return self._mapper.map_from_target(probs)
 
     def get_params(self):
         params = {

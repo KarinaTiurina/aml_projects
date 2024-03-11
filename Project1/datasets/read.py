@@ -2,13 +2,13 @@ import pandas as pd
 from scipy.io import arff
 
 
-def read_Rice_Cammeo_Osmancik():
+def read_Rice_Cammeo_Osmancik(root: str = ""):
     """
     Rice (Cammeo and Osmancik) - https://archive.ics.uci.edu/dataset/545/rice+cammeo+and+osmancik
     """
     # 1 - Cammeo
     # 0 - Osmancik
-    data, meta = arff.loadarff('data/rice+cammeo+and+osmancik/Rice_Cammeo_Osmancik.arff')
+    data, meta = arff.loadarff(root + 'data/rice+cammeo+and+osmancik/Rice_Cammeo_Osmancik.arff')
     df = pd.DataFrame(data)
     df['Class'] = df['Class'].astype(str)
     df['Class'] = df['Class'].replace('Cammeo', 1)
@@ -33,11 +33,11 @@ def read_Rice_Cammeo_Osmancik():
     return X, y
 
 
-def read_Online_Shoppers_intention():
+def read_Online_Shoppers_intention(root: str = ""):
     """
     Online Shoppers intention Dataset - https://archive.ics.uci.edu/dataset/468/online+shoppers+purchasing+intention+dataset
     """
-    filepath = 'data/online+shoppers+purchasing+intention+dataset/online_shoppers_intention.csv'
+    filepath = root + 'data/online+shoppers+purchasing+intention+dataset/online_shoppers_intention.csv'
     df = pd.read_csv(filepath, sep=',', encoding='utf-8')
     df['Month'] = df['Month'].replace('Feb', 2)
     df['Month'] = df['Month'].replace('Mar', 3)
@@ -79,12 +79,12 @@ def read_Online_Shoppers_intention():
     return X, y
 
 
-def read_Multiple_Disease_Prediction():
+def read_Multiple_Disease_Prediction(root: str = ""):
     """
     Multiple Disease Prediction
     https://www.kaggle.com/datasets/ehababoelnaga/multiple-disease-prediction?select=Blood_samples_dataset_balanced_2%28f%29.csv
     """
-    filepath = 'data/Multiple Disease Prediction/Blood_samples_dataset_balanced_2(f).csv'
+    filepath = root + 'data/Multiple Disease Prediction/Blood_samples_dataset_balanced_2(f).csv'
     # 0 - Healthy
     # 1 - Any disease
     df = pd.read_csv(filepath)
@@ -115,12 +115,12 @@ def read_Multiple_Disease_Prediction():
     return X, y
 
 
-def read_Web_Page_Phishing():
+def read_Web_Page_Phishing(root: str = ""):
     """
     Web Page Phishing
     https://www.kaggle.com/datasets/danielfernandon/web-page-phishing-dataset
     """
-    filepath = 'data/Web Page Phishing/web-page-phishing.csv'
+    filepath = root + 'data/Web Page Phishing/web-page-phishing.csv'
     df = pd.read_csv(filepath)
 
     # Clean the data - remove the rows with missing values
@@ -145,12 +145,12 @@ def read_Web_Page_Phishing():
     return X, y
 
 
-def read_Dataset_for_Link_Phishing():
+def read_Dataset_for_Link_Phishing(root: str = ""):
     """
     Dataset for Link Phishing
     https://www.kaggle.com/datasets/winson13/dataset-for-link-phishing-detection
     """
-    filepath = 'data/Dataset for Link Phishing/dataset_link_phishing.csv'
+    filepath = root + 'data/Dataset for Link Phishing/dataset_link_phishing.csv'
     df = pd.read_csv(filepath, low_memory=False)
     df = df.drop(columns=['Unnamed: 0', 'url'])
     df['domain_with_copyright'].unique()
@@ -183,12 +183,13 @@ def read_Dataset_for_Link_Phishing():
     return X, y
 
 
-def read_Statlog_Shuttle():
+def read_Statlog_Shuttle(root: str = ""):
     """
     Statlog (Shuttle) Data Set
     https://archive.ics.uci.edu/dataset/148/statlog+shuttle
     """
     filepaths = ['data/statlog+shuttle/shuttle.trn', 'data/statlog+shuttle/shuttle.tst']
+    filepaths = [root + filepath for filepath in filepaths]
     df1 = pd.read_csv(filepaths[0], sep=' ', header=None)
     df2 = pd.read_csv(filepaths[1], sep=' ', header=None)
     df = pd.concat([df1, df2])
@@ -218,12 +219,12 @@ def read_Statlog_Shuttle():
     return X, y
 
 
-def read_Banknote_Authentication():
+def read_Banknote_Authentication(root: str = ""):
     """
     Banknote Authentication Data Set
     https://archive.ics.uci.edu/dataset/267/banknote+authentication
     """
-    filepath = 'data/banknote+authentication/data_banknote_authentication.txt'
+    filepath = root + 'data/banknote+authentication/data_banknote_authentication.txt'
     df = pd.read_csv(filepath, sep=',', header=None)
 
     # Clean the data - remove the rows with missing values
@@ -249,12 +250,13 @@ def read_Banknote_Authentication():
     return X, y
 
 
-def read_Airline_Passenger_Satisfaction():
+def read_Airline_Passenger_Satisfaction(root: str = ""):
     """
     Airline Passenger Satisfaction
     https://www.kaggle.com/datasets/teejmahal20/airline-passenger-satisfaction
     """
     filepaths = ['data/Airline Passenger Satisfaction/train.csv', 'data/Airline Passenger Satisfaction/test.csv']
+    filepaths = [root + filepath for filepath in filepaths]
     df1 = pd.read_csv(filepaths[0])
     df2 = pd.read_csv(filepaths[1])
 
@@ -302,12 +304,12 @@ def read_Airline_Passenger_Satisfaction():
     return X, y
 
 
-def read_Optdigits():
+def read_Optdigits(root: str = ""):
     """
     Optical Recognition of Handwritten Digits Data Set
     https://www.openml.org/search?type=data&sort=qualities.NumberOfNumericFeatures&status=active&order=desc&qualities.NumberOfFeatures=between_10_100&qualities.NumberOfClasses=%3D_2&id=980
     """
-    filepath = 'data/optdigits/optdigits.arff'
+    filepath = root + 'data/optdigits/optdigits.arff'
     data, meta = arff.loadarff(filepath)
     df = pd.DataFrame(data)
 
