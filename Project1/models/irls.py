@@ -77,14 +77,11 @@ class IRLS:
             raise ValueError("Start with fitting the model")
         if prepare:
             X = self._prepare_x(X)
-        return 1/(1 + np.exp(-np.dot(X, self._beta)))
+        return np.dot(X, self._beta)
 
     def predict_proba(self, X, prepare=True):
-        if self._weights is None or self._beta is None:
-            raise ValueError("Start with fitting the model")
-        if prepare:
-            X = self._prepare_x(X)
-        return 1/(1 + np.exp(-np.dot(X, self._beta)))
+        log_odds = self.log_odds(X, prepare)
+        return 1/(1 + np.exp(-log_odds))
 
     def predict(self, X):
         probs = self.predict_proba(X)
