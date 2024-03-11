@@ -1,7 +1,6 @@
 import pandas as pd
 from scipy.io import arff
 
-
 def read_Rice_Cammeo_Osmancik(root: str = ""):
     """
     Rice (Cammeo and Osmancik) - https://archive.ics.uci.edu/dataset/545/rice+cammeo+and+osmancik
@@ -38,6 +37,7 @@ def read_Online_Shoppers_intention(root: str = ""):
     Online Shoppers intention Dataset - https://archive.ics.uci.edu/dataset/468/online+shoppers+purchasing+intention+dataset
     """
     filepath = root + 'data/online+shoppers+purchasing+intention+dataset/online_shoppers_intention.csv'
+
     df = pd.read_csv(filepath, sep=',', encoding='utf-8')
     df['Month'] = df['Month'].replace('Feb', 2)
     df['Month'] = df['Month'].replace('Mar', 3)
@@ -85,6 +85,7 @@ def read_Multiple_Disease_Prediction(root: str = ""):
     https://www.kaggle.com/datasets/ehababoelnaga/multiple-disease-prediction?select=Blood_samples_dataset_balanced_2%28f%29.csv
     """
     filepath = root + 'data/Multiple Disease Prediction/Blood_samples_dataset_balanced_2(f).csv'
+  
     # 0 - Healthy
     # 1 - Any disease
     df = pd.read_csv(filepath)
