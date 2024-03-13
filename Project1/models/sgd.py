@@ -51,9 +51,11 @@ class SGD:
         #       Based on my struggles, it would be good to see if the gradient is
         #       close to 0 for both classes for some number of samples
         #       (e.g. 10 samples from class 0, 10 from 1, nothing changed, ergo nothing should change in the future)
-        random_i = math.floor(self._rng.uniform(0, X.shape[0]))
 
-        self._update_beta(X[random_i, :].flatten(), y[random_i])
+        combined_data = np.concatenate([X, y.reshape((len(y), 1))], axis=1)
+        self._rng.shuffle(combined_data)
+
+        np.apply_along_axis(lambda r: self._update_beta(r[:-1], r[-1]), 1, combined_data)
         self._n_iter += 1
 
     def _prepare_x(self, X):
@@ -74,8 +76,8 @@ class SGD:
             for v1, v2 in interactions:
                 inter_col = X[:, v1] * X[:, v2]
                 inter_cols.append(inter_col)
-            Xint = np.concatenate(inter_cols, axis=0)
-            X = np.concatenate([X, Xint], axis=0)
+            Xint = np.concatenate(inter_cols, axis=1)
+            X = np.concatenate([X, Xint], axis=1)
 
         if len(yy.shape) != 1:
             yy = yy.flatten()
@@ -85,9 +87,12 @@ class SGD:
         ncol = X.shape[1]
         self._beta = np.zeros(ncol)
 
+        X_copy = np.copy(X)
+        y_copy = np.copy(yy)
+
         while True:
             try:
-                self._iteration(X, yy)
+                self._iteration(X_copy, y_copy)
             except StopIteration:
                 break
 
