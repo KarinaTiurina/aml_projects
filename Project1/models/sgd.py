@@ -36,8 +36,8 @@ class SGD:
         self._mapper = ClassMapper([-1, 1])
 
     def _gradient(self, x_sample, y_sample):
-        pred = _sigmoid(self.log_odds(x_sample, prepare=False))
-        return x_sample * (pred - (y_sample + 1) / 2)
+        pred = (_sigmoid(np.dot(x_sample, self._beta)) * 2) - 1
+        return -y_sample*x_sample / (np.exp(pred * y_sample) + 1)
 
     def _update_beta(self, x_sample, y_sample):
         grad = self._gradient(x_sample, y_sample)
@@ -55,7 +55,12 @@ class SGD:
         combined_data = np.concatenate([X, y.reshape((len(y), 1))], axis=1)
         self._rng.shuffle(combined_data)
 
+        beta = np.copy(self._beta)
         np.apply_along_axis(lambda r: self._update_beta(r[:-1], r[-1]), 1, combined_data)
+
+        if self._n_iter % 10 == 0:
+            print("Debug:", np.linalg.norm(self._beta - beta, ord=np.inf))
+
         self._n_iter += 1
 
     def _prepare_x(self, X):
