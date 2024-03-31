@@ -1,3 +1,4 @@
+import warnings
 from typing import List
 import numpy as np
 
@@ -26,9 +27,14 @@ class ClassMapper:
 
     @staticmethod
     def _map(y, src_classes, target_classes):
-        current_classes = sorted(list(np.unique(y)))
+        current_classes = sorted(list(map(int, np.unique(y))))
+
         if current_classes != src_classes:
-            raise ValueError("y contains classes other than " + str(src_classes))
+            warnings.warn(f"Classes in y are not the same as source classes. "
+                          f"Will attempt to map anyway. {current_classes} != {src_classes}")
+            for cls in current_classes:
+                if cls not in src_classes:
+                    raise ValueError(f"Class {cls} not in source classes {src_classes}")
 
         if src_classes == target_classes:
             return y

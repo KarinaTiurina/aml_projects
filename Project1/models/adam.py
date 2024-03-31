@@ -83,7 +83,8 @@ class ADAM:
         np.apply_along_axis(lambda r: self._update(r[:-1], r[-1]), 1, combined_data)
 
         if self._n_iter % 10 == 0:
-            print("Debug:", np.linalg.norm(self._theta - theta, ord=np.inf))
+            # print("Debug:", np.linalg.norm(self._theta - theta, ord=np.inf))
+            pass
 
         self._n_iter += 1
 

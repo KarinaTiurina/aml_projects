@@ -59,7 +59,8 @@ class SGD:
         np.apply_along_axis(lambda r: self._update_beta(r[:-1], r[-1]), 1, combined_data)
 
         if self._n_iter % 10 == 0:
-            print("Debug:", np.linalg.norm(self._beta - beta, ord=np.inf))
+            # print("Debug:", np.linalg.norm(self._beta - beta, ord=np.inf))
+            pass
 
         self._n_iter += 1
 
