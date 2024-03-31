@@ -33,6 +33,7 @@ class IRLS:
         if self._n_iter >= self._iter_limit:
             raise StopIteration()
 
+        print(f"Running iteration {self._n_iter}")
         # TODO: Also some stop-condition, we have to decide
         self._update_beta(X, y)
         self._update_weights(X, y)
