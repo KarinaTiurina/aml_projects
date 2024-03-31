@@ -357,6 +357,9 @@ def read_Airline_Passenger_Satisfaction(root: str = ""):
     # Cleanup VIF
     df = cleanup_vif(df, 'satisfaction', 10.0)
 
+    # Reduce instance size for Airline_Passenger_Satisfaction by half
+    df = df.sample(frac=0.5, random_state=0)
+
     y = df['satisfaction'].values
     X = df.drop(columns=['satisfaction']).values
     return X, y
