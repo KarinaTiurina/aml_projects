@@ -18,6 +18,11 @@ class IRLS:
     def _update_beta(self, X, y):
         m1 = np.linalg.multi_dot([X.T, self._weights, X])
         m2 = np.linalg.multi_dot([X.T, self._weights, y.reshape((y.shape[0], 1))])
+
+        # Fix for singular matrix
+        if np.linalg.matrix_rank(m1) < m1.shape[0]:
+            m1 += np.eye(m1.shape[0]) * 1E-4
+
         inv_m1 = np.linalg.inv(m1)
         self._beta = np.dot(inv_m1, m2).flatten()
 
@@ -33,7 +38,7 @@ class IRLS:
         if self._n_iter >= self._iter_limit:
             raise StopIteration()
 
-        print(f"Running iteration {self._n_iter}")
+        # print(f"Running iteration {self._n_iter}")
         # TODO: Also some stop-condition, we have to decide
         self._update_beta(X, y)
         self._update_weights(X, y)
