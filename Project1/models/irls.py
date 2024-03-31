@@ -2,6 +2,7 @@ from typing import List, Tuple
 import numpy as np
 
 from models.util import ClassMapper
+from models.data_handle import prepare_x
 
 
 class IRLS:
@@ -10,6 +11,7 @@ class IRLS:
         self._iter_limit = iter_limit
         self._delta = delta
 
+        self._interactions = []
         self._weights = None
         self._beta = None
         self._n_iter = 0
@@ -38,10 +40,6 @@ class IRLS:
         self._update_weights(X, y)
         self._n_iter += 1
 
-    def _prepare_x(self, X):
-        ones = np.ones(X.shape[0]).reshape((X.shape[0], 1))
-        return np.concatenate([ones, X], 1)
-
     def fit(self, X, y, interactions: List[Tuple[int, int]] = None):
         yy = self._mapper.map_to_target(y)
         classes = list(np.unique(yy))
@@ -52,17 +50,12 @@ class IRLS:
             raise ValueError("Model already fitted or corrupted")
 
         if interactions is not None and len(interactions) > 0:
-            inter_cols = []
-            for v1, v2 in interactions:
-                inter_col = X[:, v1] * X[:, v2]
-                inter_cols.append(inter_col)
-            Xint = np.concatenate(inter_cols, axis=0)
-            X = np.concatenate([X, Xint], axis=0)
+            self._interactions = interactions
 
         if len(yy.shape) != 1:
             yy = yy.flatten()
 
-        X = self._prepare_x(X)
+        X = prepare_x(X, self._interactions)
         nrow = X.shape[0]
         self._weights = np.diag(np.ones(nrow))
 
@@ -76,7 +69,7 @@ class IRLS:
         if self._weights is None or self._beta is None:
             raise ValueError("Start with fitting the model")
         if prepare:
-            X = self._prepare_x(X)
+            X = prepare_x(X, self._interactions)
         return np.dot(X, self._beta)
 
     def predict_proba(self, X, prepare=True):

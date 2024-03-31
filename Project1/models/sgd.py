@@ -3,6 +3,7 @@ import numpy as np
 import math
 
 from models.util import ClassMapper
+from models.data_handle import prepare_x
 
 
 def _sigmoid(z):
@@ -31,6 +32,7 @@ class SGD:
         else:
             self._rng = rng
 
+        self._interactions = []
         self._beta = None
         self._n_iter = 0
         self._mapper = ClassMapper([-1, 1])
@@ -63,10 +65,6 @@ class SGD:
 
         self._n_iter += 1
 
-    def _prepare_x(self, X):
-        ones = np.ones(X.shape[0]).reshape((X.shape[0], 1))
-        return np.concatenate([ones, X], 1)
-
     def fit(self, X, y, interactions: List[Tuple[int, int]] = None):
         yy = self._mapper.map_to_target(y)
         classes = list(np.unique(yy))
@@ -77,17 +75,12 @@ class SGD:
             raise ValueError("Model already fitted or corrupted")
 
         if interactions is not None and len(interactions) > 0:
-            inter_cols = []
-            for v1, v2 in interactions:
-                inter_col = X[:, v1] * X[:, v2]
-                inter_cols.append(inter_col)
-            Xint = np.concatenate(inter_cols, axis=1)
-            X = np.concatenate([X, Xint], axis=1)
+            self._interactions = interactions
 
         if len(yy.shape) != 1:
             yy = yy.flatten()
 
-        X = self._prepare_x(X)
+        X = prepare_x(X, self._interactions)
 
         ncol = X.shape[1]
         self._beta = np.zeros(ncol)
@@ -105,7 +98,7 @@ class SGD:
         if self._beta is None:
             raise ValueError("Start with fitting the model")
         if prepare:
-            X = self._prepare_x(X)
+            X = prepare_x(X, self._interactions)
         return np.dot(X, self._beta)
 
     def predict_proba(self, X, prepare=True):
