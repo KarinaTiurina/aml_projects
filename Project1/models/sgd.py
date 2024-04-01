@@ -80,7 +80,7 @@ class SGD:
         if interactions is not None and len(interactions) > 0:
             inter_cols = []
             for v1, v2 in interactions:
-                inter_col = X[:, v1] * X[:, v2]
+                inter_col = (X[:, v1] * X[:, v2]).reshape((X.shape[0], 1))
                 inter_cols.append(inter_col)
             Xint = np.concatenate(inter_cols, axis=1)
             X = np.concatenate([X, Xint], axis=1)
@@ -113,7 +113,15 @@ class SGD:
         log_odds = self.log_odds(X, prepare)
         return _sigmoid(log_odds)
 
-    def predict(self, X):
+    def predict(self, X, interactions: List[Tuple[int, int]] = None):
+        if interactions is not None and len(interactions) > 0:
+            inter_cols = []
+            for v1, v2 in interactions:
+                inter_col = (X[:, v1] * X[:, v2]).reshape((X.shape[0], 1))
+                inter_cols.append(inter_col)
+            Xint = np.concatenate(inter_cols, axis=1)
+            X = np.concatenate([X, Xint], axis=1)
+
         probs = self.predict_proba(X)
         probs[probs < 0.5] = -1
         probs[probs >= 0.5] = 1
