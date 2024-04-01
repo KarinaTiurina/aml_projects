@@ -18,6 +18,11 @@ class IRLS:
     def _update_beta(self, X, y):
         m1 = np.linalg.multi_dot([X.T, self._weights, X])
         m2 = np.linalg.multi_dot([X.T, self._weights, y.reshape((y.shape[0], 1))])
+
+        # Fix for singular matrix
+        if np.linalg.matrix_rank(m1) < m1.shape[0]:
+            m1 += np.eye(m1.shape[0]) * 1E-4
+
         inv_m1 = np.linalg.inv(m1)
         self._beta = np.dot(inv_m1, m2).flatten()
 
@@ -33,6 +38,7 @@ class IRLS:
         if self._n_iter >= self._iter_limit:
             raise StopIteration()
 
+        # print(f"Running iteration {self._n_iter}")
         # TODO: Also some stop-condition, we have to decide
         self._update_beta(X, y)
         self._update_weights(X, y)
@@ -54,10 +60,10 @@ class IRLS:
         if interactions is not None and len(interactions) > 0:
             inter_cols = []
             for v1, v2 in interactions:
-                inter_col = X[:, v1] * X[:, v2]
+                inter_col = (X[:, v1] * X[:, v2]).reshape((X.shape[0], 1))
                 inter_cols.append(inter_col)
-            Xint = np.concatenate(inter_cols, axis=0)
-            X = np.concatenate([X, Xint], axis=0)
+            Xint = np.concatenate(inter_cols, axis=1)
+            X = np.concatenate([X, Xint], axis=1)
 
         if len(yy.shape) != 1:
             yy = yy.flatten()
@@ -83,7 +89,15 @@ class IRLS:
         log_odds = self.log_odds(X, prepare)
         return 1/(1 + np.exp(-log_odds))
 
-    def predict(self, X):
+    def predict(self, X, interactions: List[Tuple[int, int]] = None):
+        if interactions is not None and len(interactions) > 0:
+            inter_cols = []
+            for v1, v2 in interactions:
+                inter_col = (X[:, v1] * X[:, v2]).reshape((X.shape[0], 1))
+                inter_cols.append(inter_col)
+            Xint = np.concatenate(inter_cols, axis=1)
+            X = np.concatenate([X, Xint], axis=1)
+
         probs = self.predict_proba(X)
         probs[probs < 0.5] = -1
         probs[probs >= 0.5] = 1
