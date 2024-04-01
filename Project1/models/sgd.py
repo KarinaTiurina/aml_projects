@@ -10,11 +10,11 @@ def _sigmoid(z):
         if z < -100:
             return 0
 
-        return 1/(1+math.exp(-z))
+        return 1 / (1 + math.exp(-z))
     else:
         exp_z = z.copy()
         exp_z[z < -100] = 0
-        exp_z[z >= -100] = 1/(1+np.exp(-z[z >= -100]))
+        exp_z[z >= -100] = 1 / (1 + np.exp(-z[z >= -100]))
         return exp_z
 
 
@@ -36,8 +36,9 @@ class SGD:
         self._mapper = ClassMapper([-1, 1])
 
     def _gradient(self, x_sample, y_sample):
-        pred = (_sigmoid(np.dot(x_sample, self._beta)) * 2) - 1
-        return -y_sample*x_sample / (np.exp(pred * y_sample) + 1)
+        pred = _sigmoid(np.dot(x_sample, self._beta))
+        y_scaled = (y_sample + 1) / 2
+        return (pred - y_scaled) * x_sample
 
     def _update_beta(self, x_sample, y_sample):
         grad = self._gradient(x_sample, y_sample)
@@ -57,9 +58,12 @@ class SGD:
 
         beta = np.copy(self._beta)
         np.apply_along_axis(lambda r: self._update_beta(r[:-1], r[-1]), 1, combined_data)
+        update_factor = 1e-3 * ((self._beta - beta) / self._learning_rate)
 
         if self._n_iter % 10 == 0:
-            # print("Debug:", np.linalg.norm(self._beta - beta, ord=np.inf))
+            # print("Max:", np.linalg.norm(update_factor, ord=np.inf),
+            #       " Sq:", np.linalg.norm(update_factor),
+            #       " Sum:", np.linalg.norm(update_factor, ord=1))
             pass
 
         self._n_iter += 1

@@ -50,8 +50,9 @@ class ADAM:
         self._mapper = ClassMapper([-1, 1])
 
     def _gradient(self, x_sample, y_sample):
-        pred = (_sigmoid(np.dot(x_sample, self._theta)) * 2) - 1
-        return -y_sample*x_sample / (np.exp(pred * y_sample) + 1)
+        pred = _sigmoid(np.dot(x_sample, self._theta))
+        y_scaled = (y_sample + 1) / 2
+        return (pred - y_scaled) * x_sample
 
     def _update(self, x_sample, y_sample):
         self._t += 1
