@@ -1,10 +1,22 @@
-from typing import List, Tuple
+from typing import Tuple, Optional, List
+
 import numpy as np
 
-from models.util import ClassMapper
+from .util import ClassMapper
 
 
 class IRLS:
+    _p: int
+    _iter_limit: int
+    _delta: float
+    _tol: float
+    _weights: Optional[np.ndarray]
+    _beta: Optional[np.ndarray]
+    _n_iter: int
+    _prev_loss: float
+    _loss_history: List[float]
+    _mapper: ClassMapper
+
     def __init__(self, p: int = 2, iter_limit: int = 500, delta: float = 1E-4, tol: float = 1E-6):
         self._p = p
         self._iter_limit = iter_limit
@@ -14,8 +26,8 @@ class IRLS:
         self._weights = None
         self._beta = None
         self._n_iter = 0
-        self._prev_loss = float('inf')
-        self._loss_history = []
+        self._prev_loss = 1E9
+        self._loss_history: List[float] = [self._prev_loss for _ in range(0)]
         self._mapper = ClassMapper([-1, 1])
 
     def _update_beta(self, X, y):
@@ -116,7 +128,7 @@ class IRLS:
 
     def predict_proba(self, X, prepare=True):
         log_odds = self.log_odds(X, prepare)
-        return 1/(1 + np.exp(-log_odds))
+        return 1 / (1 + np.exp(-log_odds))
 
     def predict(self, X, interactions: List[Tuple[int, int]] = None):
         if interactions is not None and len(interactions) > 0:
