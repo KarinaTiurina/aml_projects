@@ -1,8 +1,8 @@
-from typing import List, Tuple
+from typing import Tuple, Optional, List
 import numpy as np
 import math
 
-from models.util import ClassMapper
+from .util import ClassMapper
 
 
 def _sigmoid(z):
@@ -19,25 +19,31 @@ def _sigmoid(z):
 
 
 class SGD:
+    _iter_limit: int
+    _learning_rate: float
+    _tol: float
+    _beta: Optional[np.ndarray]
+    _n_iter: int
+    _prev_loss: float
+    _loss_history: List[float]
+    _mapper: ClassMapper
+
     def __init__(self,
                  iter_limit: int = 500,
                  rate: float = 1E-4,
                  tol: float = 1E-6,
-                 rng: np.random.Generator = None):
+                 seed: int = 0):
         self._iter_limit = iter_limit
         self._learning_rate = rate
         self._tol = tol
 
-        if rng is None:
-            self._rng = np.random.default_rng(0)
-        else:
-            self._rng = rng
-
         self._beta = None
         self._n_iter = 0
-        self._prev_loss = float('inf')
-        self._loss_history = []
+        self._prev_loss = 1E9
+        self._loss_history: List[float] = [self._prev_loss for _ in range(0)]
         self._mapper = ClassMapper([-1, 1])
+
+        np.random.seed(seed)
 
     def _gradient(self, x_sample, y_sample):
         pred = _sigmoid(np.dot(x_sample, self._beta))
@@ -62,7 +68,7 @@ class SGD:
             raise StopIteration()
 
         combined_data = np.concatenate([X, y.reshape((len(y), 1))], axis=1)
-        self._rng.shuffle(combined_data)
+        np.random.shuffle(combined_data)
 
         # previous_beta = np.copy(self._beta)
         np.apply_along_axis(lambda r: self._update_beta(r[:-1], r[-1]), 1, combined_data)

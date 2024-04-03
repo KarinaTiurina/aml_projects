@@ -1,8 +1,9 @@
-from typing import List, Tuple
-import numpy as np
 import math
+from typing import Tuple, List, Optional
 
-from models.util import ClassMapper
+import numpy as np
+
+from .util import ClassMapper
 
 
 def _sigmoid(z):
@@ -10,16 +11,33 @@ def _sigmoid(z):
         if z < -100:
             return 0
 
-        return 1/(1+math.exp(-z))
+        return 1 / (1 + math.exp(-z))
     else:
         exp_z = z.copy()
         exp_z[z < -100] = 0
-        exp_z[z >= -100] = 1/(1+np.exp(-z[z >= -100]))
+        exp_z[z >= -100] = 1 / (1 + np.exp(-z[z >= -100]))
         return exp_z
 
 
 class ADAM:
     # Default values taken from https://arxiv.org/pdf/1412.6980.pdf
+    _iter_limit: int
+    _stepsize: float
+    _beta1: float
+    _beta2: float
+    _epsilon: float
+    _tol: float
+    _t: int
+    _beta1t: float
+    _beta2t: float
+    _theta: Optional[np.ndarray]
+    _moment_m: float
+    _moment_v: float
+    _n_iter: int
+    _prev_loss: float
+    _loss_history: List[float]
+    _mapper: ClassMapper
+
     def __init__(self,
                  iter_limit: int = 500,
                  stepsize: float = 1E-3,
@@ -27,7 +45,7 @@ class ADAM:
                  beta2: float = 0.999,
                  epsilon: float = 1E-8,
                  tol: float = 1E-6,
-                 rng: np.random.Generator = None):
+                 seed: int = 0):
         self._iter_limit = iter_limit
         self._stepsize = stepsize
 
@@ -41,18 +59,15 @@ class ADAM:
         self._beta1t = 1
         self._beta2t = 1
 
-        if rng is None:
-            self._rng = np.random.default_rng(0)
-        else:
-            self._rng = rng
-
         self._theta = None
         self._moment_m = 0
         self._moment_v = 0
         self._n_iter = 0
-        self._prev_loss = float('inf')
-        self._loss_history = []
+        self._prev_loss = 1E9
+        self._loss_history: List[float] = [self._prev_loss for _ in range(0)]
         self._mapper = ClassMapper([-1, 1])
+
+        np.random.seed(seed)
 
     def _gradient(self, x_sample, y_sample):
         pred = _sigmoid(np.dot(x_sample, self._theta))
@@ -87,7 +102,7 @@ class ADAM:
             raise StopIteration()
 
         combined_data = np.concatenate([X, y.reshape((len(y), 1))], axis=1)
-        self._rng.shuffle(combined_data)
+        np.random.shuffle(combined_data)
 
         theta = np.copy(self._theta)
         np.apply_along_axis(lambda r: self._update(r[:-1], r[-1]), 1, combined_data)

@@ -1,4 +1,5 @@
 import warnings
+from typing import Optional
 from typing import List
 import numpy as np
 
@@ -8,8 +9,10 @@ class ClassMapper:
     Map observations from binary target variable to desired values.
     Handles mapping both ways.
     """
+    _target_classes: List[int]
+    _classes: Optional[List[int]]
 
-    def __init__(self, target_classes: List):
+    def __init__(self, target_classes: List[int]):
         if len(target_classes) != 2:
             raise ValueError("Provide a list of two classes")
         self._target_classes = target_classes
