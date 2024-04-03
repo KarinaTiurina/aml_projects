@@ -51,7 +51,6 @@ class IRLS:
             raise StopIteration()
 
         # print(f"Running iteration {self._n_iter}")
-        # TODO: Also some stop-condition, we have to decide
         self._update_beta(X, y)
         self._update_weights(X, y)
         self._n_iter += 1
@@ -60,11 +59,19 @@ class IRLS:
         y_pred = self.predict_proba(X, prepare=False)
         loss = self._nll_loss(y, y_pred)
 
-        # if np.abs(loss - self._prev_loss) < self._tol:
-        #     raise StopIteration()
-
         self._prev_loss = loss
         self._loss_history.append(loss)
+
+        # Check stop condition based on the change in NLL loss
+        if self._n_iter > 10:
+            differences = []
+            last_loss = self._loss_history[-10:] 
+            for i in range(1, len(last_loss)):
+                differences.append(np.abs(last_loss[i] - last_loss[i-1]))
+            if np.mean(differences) < self._tol:
+                raise StopIteration()
+
+
 
     def _prepare_x(self, X):
         ones = np.ones(X.shape[0]).reshape((X.shape[0], 1))

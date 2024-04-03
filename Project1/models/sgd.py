@@ -71,15 +71,20 @@ class SGD:
         y_pred = self.predict_proba(X, prepare=False)  # Use raw X since it's already prepared
         current_loss = self._nll_loss(y, y_pred)
 
-        # Check stop condition based on the change in NLL loss
-        # if abs(self._prev_loss - current_loss) < self._tol:
-        #     raise StopIteration()
-
         # update_factor = 1e-3 * ((self._beta - current_beta) / self._learning_rate)
 
         self._prev_loss = current_loss
         self._loss_history.append(current_loss)
         self._n_iter += 1
+
+        # Check stop condition based on the change in NLL loss
+        if self._n_iter > 10:
+            differences = []
+            last_loss = self._loss_history[-10:] 
+            for i in range(1, len(last_loss)):
+                differences.append(np.abs(last_loss[i] - last_loss[i-1]))
+            if np.mean(differences) < self._tol:
+                raise StopIteration()
 
     def _prepare_x(self, X):
         ones = np.ones(X.shape[0]).reshape((X.shape[0], 1))
