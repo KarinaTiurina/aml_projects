@@ -60,8 +60,8 @@ class IRLS:
         y_pred = self.predict_proba(X, prepare=False)
         loss = self._nll_loss(y, y_pred)
 
-        if np.abs(loss - self._prev_loss) < self._tol:
-            raise StopIteration()
+        # if np.abs(loss - self._prev_loss) < self._tol:
+        #     raise StopIteration()
 
         self._prev_loss = loss
         self._loss_history.append(loss)
@@ -131,7 +131,8 @@ class IRLS:
             "iteration_limit": self._iter_limit,
             "weights": self._weights,
             "coefficients": self._beta,
-            "iterations_run": self._n_iter
+            "iterations_run": self._n_iter,
+            "loss_history": self._loss_history
         }
 
         if self._p == 1:
