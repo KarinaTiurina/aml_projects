@@ -51,7 +51,6 @@ class IRLS:
             raise StopIteration()
 
         # print(f"Running iteration {self._n_iter}")
-        # TODO: Also some stop-condition, we have to decide
         self._update_beta(X, y)
         self._update_weights(X, y)
         self._n_iter += 1
@@ -63,6 +62,7 @@ class IRLS:
         self._prev_loss = loss
         self._loss_history.append(loss)
 
+        # Check stop condition based on the change in NLL loss
         if self._n_iter > 10:
             differences = []
             last_loss = self._loss_history[-10:] 

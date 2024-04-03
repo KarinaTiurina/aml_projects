@@ -86,11 +86,6 @@ class ADAM:
         if self._n_iter >= self._iter_limit:
             raise StopIteration()
 
-        # TODO: Also some stop-condition, we have to decide
-        #       Based on my struggles, it would be good to see if the gradient is
-        #       close to 0 for both classes for some number of samples
-        #       (e.g. 10 samples from class 0, 10 from 1, nothing changed, ergo nothing should change in the future)
-
         combined_data = np.concatenate([X, y.reshape((len(y), 1))], axis=1)
         self._rng.shuffle(combined_data)
 
