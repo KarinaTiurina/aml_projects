@@ -22,9 +22,11 @@ class SGD:
     def __init__(self,
                  iter_limit: int = 500,
                  rate: float = 1E-4,
+                 tol: float = 1E-6,
                  rng: np.random.Generator = None):
         self._iter_limit = iter_limit
         self._learning_rate = rate
+        self._tol = tol
 
         if rng is None:
             self._rng = np.random.default_rng(0)
@@ -33,6 +35,8 @@ class SGD:
 
         self._beta = None
         self._n_iter = 0
+        self._prev_loss = float('inf')
+        self._loss_history = []
         self._mapper = ClassMapper([-1, 1])
 
     def _gradient(self, x_sample, y_sample):
@@ -44,28 +48,37 @@ class SGD:
         grad = self._gradient(x_sample, y_sample)
         self._beta -= self._learning_rate * grad
 
+    def _nll_loss(self, y_true, y_pred):
+        # Stabilize the log computation
+        eps = 1e-9
+        y_pred = np.clip(y_pred, eps, 1 - eps)  # Ensure y_pred is within (0, 1)
+
+        # Compute the Negative Log Likelihood loss and normalize by the number of samples
+        loss = -np.sum(y_true * np.log(y_pred) + (1 - y_true) * np.log(1 - y_pred)) / len(y_true)
+        return loss
+
     def _iteration(self, X, y):
         if self._n_iter >= self._iter_limit:
             raise StopIteration()
 
-        # TODO: Also some stop-condition, we have to decide
-        #       Based on my struggles, it would be good to see if the gradient is
-        #       close to 0 for both classes for some number of samples
-        #       (e.g. 10 samples from class 0, 10 from 1, nothing changed, ergo nothing should change in the future)
-
         combined_data = np.concatenate([X, y.reshape((len(y), 1))], axis=1)
         self._rng.shuffle(combined_data)
 
-        beta = np.copy(self._beta)
+        # previous_beta = np.copy(self._beta)
         np.apply_along_axis(lambda r: self._update_beta(r[:-1], r[-1]), 1, combined_data)
-        update_factor = 1e-3 * ((self._beta - beta) / self._learning_rate)
 
-        if self._n_iter % 10 == 0:
-            # print("Max:", np.linalg.norm(update_factor, ord=np.inf),
-            #       " Sq:", np.linalg.norm(update_factor),
-            #       " Sum:", np.linalg.norm(update_factor, ord=1))
-            pass
+        # Calculate current NLL loss
+        y_pred = self.predict_proba(X, prepare=False)  # Use raw X since it's already prepared
+        current_loss = self._nll_loss(y, y_pred)
 
+        # Check stop condition based on the change in NLL loss
+        # if abs(self._prev_loss - current_loss) < self._tol:
+        #     raise StopIteration()
+
+        # update_factor = 1e-3 * ((self._beta - current_beta) / self._learning_rate)
+
+        self._prev_loss = current_loss
+        self._loss_history.append(current_loss)
         self._n_iter += 1
 
     def _prepare_x(self, X):
@@ -136,7 +149,9 @@ class SGD:
             "learning_rate": self._learning_rate,
             "iteration_limit": self._iter_limit,
             "coefficients": self._beta,
-            "iterations_run": self._n_iter
+            "iterations_run": self._n_iter,
+            "tolerance": self._tol,
+            "loss_history": self._loss_history
         }
 
         return params

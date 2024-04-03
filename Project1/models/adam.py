@@ -26,6 +26,7 @@ class ADAM:
                  beta1: float = 0.9,
                  beta2: float = 0.999,
                  epsilon: float = 1E-8,
+                 tol: float = 1E-6,
                  rng: np.random.Generator = None):
         self._iter_limit = iter_limit
         self._stepsize = stepsize
@@ -33,6 +34,8 @@ class ADAM:
         self._beta1 = beta1
         self._beta2 = beta2
         self._epsilon = epsilon
+
+        self._tol = tol
 
         self._t = 0
         self._beta1t = 1
@@ -47,6 +50,8 @@ class ADAM:
         self._moment_m = 0
         self._moment_v = 0
         self._n_iter = 0
+        self._prev_loss = float('inf')
+        self._loss_history = []
         self._mapper = ClassMapper([-1, 1])
 
     def _gradient(self, x_sample, y_sample):
@@ -68,6 +73,15 @@ class ADAM:
 
         self._theta -= self._stepsize * m_unbias / (np.sqrt(v_unbias) + self._epsilon)
 
+    def _nll_loss(self, y_true, y_pred):
+        # Stabilize the log computation
+        eps = 1e-9
+        y_pred = np.clip(y_pred, eps, 1 - eps)
+
+        # Compute the Negative Log Likelihood loss and normalize by the number of samples
+        loss = -np.sum(y_true * np.log(y_pred) + (1 - y_true) * np.log(1 - y_pred)) / len(y_true)
+        return loss
+
     def _iteration(self, X, y):
         if self._n_iter >= self._iter_limit:
             raise StopIteration()
@@ -83,9 +97,13 @@ class ADAM:
         theta = np.copy(self._theta)
         np.apply_along_axis(lambda r: self._update(r[:-1], r[-1]), 1, combined_data)
 
-        if self._n_iter % 10 == 0:
-            # print("Debug:", np.linalg.norm(self._theta - theta, ord=np.inf))
-            pass
+        loss = self._nll_loss(y, self.predict_proba(X, prepare=False))
+
+        if abs(self._prev_loss - loss) < self._tol:
+            raise StopIteration()
+
+        self._prev_loss = loss
+        self._loss_history.append(loss)
 
         self._n_iter += 1
 

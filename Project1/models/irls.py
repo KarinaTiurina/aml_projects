@@ -5,14 +5,17 @@ from models.util import ClassMapper
 
 
 class IRLS:
-    def __init__(self, p: int = 2, iter_limit: int = 500, delta: float = 1E-4):
+    def __init__(self, p: int = 2, iter_limit: int = 500, delta: float = 1E-4, tol: float = 1E-6):
         self._p = p
         self._iter_limit = iter_limit
         self._delta = delta
+        self._tol = tol
 
         self._weights = None
         self._beta = None
         self._n_iter = 0
+        self._prev_loss = float('inf')
+        self._loss_history = []
         self._mapper = ClassMapper([-1, 1])
 
     def _update_beta(self, X, y):
@@ -34,6 +37,15 @@ class IRLS:
         weights_diag = np.power(residuals, self._p - 2)
         self._weights = np.diag(weights_diag)
 
+    def _nll_loss(self, y_true, y_pred):
+        # Stabilize the log computation
+        eps = 1e-9
+        y_pred = np.clip(y_pred, eps, 1 - eps)
+
+        # Compute the Negative Log Likelihood loss and normalize by the number of samples
+        loss = -np.sum(y_true * np.log(y_pred) + (1 - y_true) * np.log(1 - y_pred)) / len(y_true)
+        return loss
+
     def _iteration(self, X, y):
         if self._n_iter >= self._iter_limit:
             raise StopIteration()
@@ -43,6 +55,16 @@ class IRLS:
         self._update_beta(X, y)
         self._update_weights(X, y)
         self._n_iter += 1
+
+        # Compute the loss
+        y_pred = self.predict_proba(X, prepare=False)
+        loss = self._nll_loss(y, y_pred)
+
+        if np.abs(loss - self._prev_loss) < self._tol:
+            raise StopIteration()
+
+        self._prev_loss = loss
+        self._loss_history.append(loss)
 
     def _prepare_x(self, X):
         ones = np.ones(X.shape[0]).reshape((X.shape[0], 1))

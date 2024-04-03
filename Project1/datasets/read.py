@@ -5,6 +5,7 @@ from statsmodels.stats.outliers_influence import variance_inflation_factor
 import pandas as pd
 import numpy as np
 from scipy.io import arff
+from sklearn.preprocessing import StandardScaler
 
 
 # From: https://stackoverflow.com/questions/29294983/how-to-calculate-correlation-between-all-columns-and-remove-highly-correlated-on
@@ -109,6 +110,17 @@ def cleanup_vif(df, target, threshold=10.0):
     return df[features + [target]]
 
 
+def apply_standard_scaler(df, target):
+    """
+    Apply StandardScaler to the features
+    """
+    features = list(df.columns)
+    features.remove(target)
+    scaler = StandardScaler()
+    df[features] = scaler.fit_transform(df[features])
+    return df
+
+
 def read_Rice_Cammeo_Osmancik(root: str = ""):
     """
     Rice (Cammeo and Osmancik) - https://archive.ics.uci.edu/dataset/545/rice+cammeo+and+osmancik
@@ -125,8 +137,14 @@ def read_Rice_Cammeo_Osmancik(root: str = ""):
     # Clean the data - remove the rows with missing values
     df = df.dropna()
 
+    # Apply StandardScaler to the features
+    apply_standard_scaler(df, 'Class')
+
     # Clean the data - remove collinear features
     MultiCollinearityEliminator(df, 'Class', 0.8).autoEliminateMulticollinearity()
+
+    # Cleanup VIF
+    df = cleanup_vif(df, 'Class', 10.0)
 
     X = df.drop(columns=['Class']).values
     y = df['Class'].values
@@ -168,8 +186,14 @@ def read_Online_Shoppers_intention(root: str = ""):
     # Clean the data - remove the rows with missing values
     df = df.dropna()
 
+    # Apply StandardScaler to the features
+    apply_standard_scaler(df, 'Revenue')
+
     # Clean the data - remove collinear features
     MultiCollinearityEliminator(df, 'Revenue', 0.8).autoEliminateMulticollinearity()
+
+    # Cleanup VIF
+    df = cleanup_vif(df, 'Disease', 10.0)
 
     y = df['Revenue'].values
     X = df.drop(columns=['Revenue']).values
@@ -189,6 +213,9 @@ def read_Multiple_Disease_Prediction(root: str = ""):
     df['Disease'] = df['Disease'].replace('Healthy', 0)
     df[df['Disease'] != 0] = 1
     df['Disease'] = df['Disease'].astype(int)
+
+    # Apply StandardScaler to the features
+    apply_standard_scaler(df, 'Disease')
 
     # Clean the data - remove the rows with missing values
     MultiCollinearityEliminator(df, 'Disease', 0.8).autoEliminateMulticollinearity()
@@ -211,6 +238,9 @@ def read_Web_Page_Phishing(root: str = ""):
 
     # Clean the data - remove the rows with missing values
     df = df.dropna()
+
+    # Apply StandardScaler to the features
+    apply_standard_scaler(df, 'phishing')
 
     # Clean the data - remove collinear features
     MultiCollinearityEliminator(df, 'phishing', 0.8).autoEliminateMulticollinearity()
@@ -244,6 +274,9 @@ def read_Dataset_for_Link_Phishing(root: str = ""):
     df['status'] = df['status'].replace('legitimate', 0)
     df['status'] = df['status'].astype(int)
 
+    # Apply StandardScaler to the features
+    apply_standard_scaler(df, 'status')
+
     # Clean the data - remove the rows with missing values
     df = df.dropna()
 
@@ -273,6 +306,9 @@ def read_Statlog_Shuttle(root: str = ""):
     # Clean the data - remove the rows with missing values
     df = df.dropna()
 
+    # Apply StandardScaler to the features
+    apply_standard_scaler(df, 9)
+
     # Clean the data - remove collinear features
     MultiCollinearityEliminator(df, 9, 0.8).autoEliminateMulticollinearity()
 
@@ -298,6 +334,9 @@ def read_Banknote_Authentication(root: str = ""):
 
     # Clean the data - remove the rows with missing values
     df = df.dropna()
+
+    # Apply StandardScaler to the features
+    apply_standard_scaler(df, 4)
 
     # Clean the data - remove collinear features
     MultiCollinearityEliminator(df, 4, 0.8).autoEliminateMulticollinearity()
@@ -351,6 +390,9 @@ def read_Airline_Passenger_Satisfaction(root: str = ""):
     # Clean the data - remove the rows with missing values
     df = df.dropna()
 
+    # Apply StandardScaler to the features
+    apply_standard_scaler(df, 'satisfaction')
+
     # Clean the data - remove collinear features
     MultiCollinearityEliminator(df, 'satisfaction', 0.8).autoEliminateMulticollinearity()
 
@@ -382,6 +424,9 @@ def read_Optdigits(root: str = ""):
     # Clean the data - remove the rows with missing values
     df = df.dropna()
 
+    # Apply StandardScaler to the features
+    apply_standard_scaler(df, 'binaryClass')
+
     # Clean the data - remove collinear features
     MultiCollinearityEliminator(df, 'binaryClass', 0.8).autoEliminateMulticollinearity()
 
@@ -409,6 +454,9 @@ def read_EEG_Eye_State(root: str = ""):
 
     # Clean the data - remove the rows with missing values
     df = df.dropna()
+
+    # Apply StandardScaler to the features
+    apply_standard_scaler(df, 'eyeDetection')
 
     # Clean the data - remove collinear features
     MultiCollinearityEliminator(df, 'eyeDetection', 0.8).autoEliminateMulticollinearity()
