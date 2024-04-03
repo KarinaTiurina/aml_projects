@@ -99,8 +99,8 @@ class ADAM:
 
         loss = self._nll_loss(y, self.predict_proba(X, prepare=False))
 
-        if abs(self._prev_loss - loss) < self._tol:
-            raise StopIteration()
+        # if abs(self._prev_loss - loss) < self._tol:
+        #     raise StopIteration()
 
         self._prev_loss = loss
         self._loss_history.append(loss)
@@ -178,7 +178,8 @@ class ADAM:
             "epsilon": self._epsilon,
             "iteration_limit": self._iter_limit,
             "coefficients": self._theta,
-            "iterations_run": self._n_iter
+            "iterations_run": self._n_iter,
+            "loss_history": self._loss_history
         }
 
         return params

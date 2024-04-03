@@ -193,7 +193,7 @@ def read_Online_Shoppers_intention(root: str = ""):
     MultiCollinearityEliminator(df, 'Revenue', 0.8).autoEliminateMulticollinearity()
 
     # Cleanup VIF
-    df = cleanup_vif(df, 'Disease', 10.0)
+    df = cleanup_vif(df, 'Revenue', 10.0)
 
     y = df['Revenue'].values
     X = df.drop(columns=['Revenue']).values
