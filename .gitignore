@@ -167,3 +167,5 @@ cython_debug/
 # /Project1/datasets/data/Dataset for Link Phishing
 
 .DS_Store
+
+/Project2/data/data
