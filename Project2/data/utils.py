@@ -1,13 +1,17 @@
 from typing import Optional, List, Tuple, Callable, Dict
 
+import numpy as np
 import pandas as pd
+from sklearn.model_selection import StratifiedKFold, GridSearchCV, KFold
 from sklearn.multiclass import OneVsRestClassifier
+from sklearn.neural_network import MLPClassifier
 from tqdm import tqdm
 from sklearn.preprocessing import StandardScaler
 from statsmodels.stats.outliers_influence import variance_inflation_factor
-from sklearn.ensemble import RandomForestClassifier, HistGradientBoostingClassifier, BaggingClassifier
-from sklearn.feature_selection import RFE
-from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import RandomForestClassifier, HistGradientBoostingClassifier, BaggingClassifier, \
+    ExtraTreesClassifier
+from sklearn.feature_selection import RFE, RFECV
+from sklearn.linear_model import LogisticRegression, Lasso, OrthogonalMatchingPursuit, SGDClassifier
 from sklearn.svm import SVC, LinearSVC
 from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.decomposition import PCA
@@ -199,8 +203,8 @@ def select_features_rfe_logistic_regression(X: pd.DataFrame, y: pd.Series, rando
     :param random_state: int - random state
     :return: Series - selected features
     """
-    model = LogisticRegression(max_iter=1000, random_state=random_state)
-    rfe = RFE(model, n_features_to_select=100)
+    model = LogisticRegression(max_iter=1000, random_state=random_state, n_jobs=-1)
+    rfe = RFE(model, n_features_to_select=20)
     rfe = rfe.fit(X, y)
     feature_mask = rfe.support_
     return X.columns[feature_mask]
@@ -216,7 +220,7 @@ def select_features_rfe_random_forest(X: pd.DataFrame, y: pd.Series, random_stat
     :return: Series - selected features
     """
     model = RandomForestClassifier(n_jobs=-1, random_state=random_state)
-    rfe = RFE(model, n_features_to_select=100)
+    rfe = RFE(model, n_features_to_select=20)
     rfe = rfe.fit(X, y)
     feature_mask = rfe.support_
     return X.columns[feature_mask]
@@ -232,26 +236,55 @@ def select_features_rfe_support_vector_machine(X: pd.DataFrame, y: pd.Series, ra
     :return: Series - selected features
     """
     model = LinearSVC(random_state=random_state, dual=False)
-    rfe = RFE(model, n_features_to_select=100)
+    rfe = RFE(model, n_features_to_select=20)
 
     rfe = rfe.fit(X, y)
     feature_mask = rfe.support_
     return X.columns[feature_mask]
 
 
-def select_features_random_forest(X: pd.DataFrame, y: pd.Series, random_state: int = 0) -> pd.Series:
+def select_features_forest(X: pd.DataFrame, y: pd.Series, random_state: int = 0) -> pd.Series:
     """
-    Select features using Random Forest
+    Select features using Forest
 
     :param X: DataFrame - input data
     :param y: DataFrame - target data
     :param random_state: int - random state
     :return: Series - selected features
     """
-    model = RandomForestClassifier(n_jobs=-1, random_state=random_state)
+    model = RandomForestClassifier(
+        n_jobs=-1,
+        random_state=random_state,
+        n_estimators=500
+    )
     model = model.fit(X, y)
-    sfm = SelectFromModel(model, prefit=True, max_features=100)
+    sfm = SelectFromModel(model, prefit=True, max_features=20)
     feature_mask = sfm.get_support()
+    return X.columns[feature_mask]
+
+
+def select_features_rfecv_logistic_regression(X: pd.DataFrame, y: pd.Series, random_state: int = 0) -> pd.Series:
+    """
+    Select features using Recursive Feature Elimination with Cross-Validation
+
+    :param X: DataFrame - input data
+    :param y: DataFrame - target data
+    :param random_state: int - random state
+    :return: Series - selected features
+    """
+    model = LogisticRegression(max_iter=1000, random_state=random_state, n_jobs=1, solver='liblinear')
+    cv = StratifiedKFold(5, shuffle=True, random_state=random_state)
+    rfe = RFECV(
+        estimator=model,
+        step=1,
+        cv=cv,
+        scoring="accuracy",
+        min_features_to_select=1,
+        n_jobs=-1
+    )
+
+    rfe = rfe.fit(X, y)
+    feature_mask = rfe.get_support()
     return X.columns[feature_mask]
 
 
@@ -264,19 +297,101 @@ def select_features_perceptron(X: pd.DataFrame, y: pd.Series, random_state: int 
     :param random_state: int - random state
     :return: Series - selected features
     """
-    model = Perceptron(n_jobs=-1, random_state=random_state)
+    model = SGDClassifier(loss="perceptron", random_state=random_state, n_jobs=-1)
     model = model.fit(X, y)
-    sfm = SelectFromModel(model, prefit=True, max_features=100)
+    sfm = SelectFromModel(model, prefit=True, max_features=20)
+    feature_mask = sfm.get_support()
+    return X.columns[feature_mask]
+
+
+def select_features_logistic_regression(X: pd.DataFrame, y: pd.Series, random_state: int = 0) -> pd.Series:
+    """
+    Select features using Logistic Regression
+
+    :param X: DataFrame - input data
+    :param y: DataFrame - target data
+    :param random_state: int - random state
+    :return: Series - selected features
+    """
+    model = LogisticRegression(max_iter=1000, random_state=random_state, n_jobs=-1)
+    model = model.fit(X, y)
+    sfm = SelectFromModel(model, prefit=True, max_features=20)
+    feature_mask = sfm.get_support()
+    return X.columns[feature_mask]
+
+
+def select_features_support_vector_machine(X: pd.DataFrame, y: pd.Series, random_state: int = 0) -> pd.Series:
+    """
+    Select features using Support Vector Machine
+
+    :param X: DataFrame - input data
+    :param y: DataFrame - target data
+    :param random_state: int - random state
+    :return: Series - selected features
+    """
+    model = LinearSVC(random_state=random_state, dual=False)
+    model = model.fit(X, y)
+    sfm = SelectFromModel(model, prefit=True, max_features=20)
+    feature_mask = sfm.get_support()
+    return X.columns[feature_mask]
+
+
+def select_features_lasso(X: pd.DataFrame, y: pd.Series, random_state: int = 0) -> pd.Series:
+    """
+    Select features using Lasso
+
+    :param X: DataFrame - input data
+    :param y: DataFrame - target data
+    :param random_state: int - random state
+    :return: Series - selected features
+    """
+    kf = KFold(n_splits=5, shuffle=True, random_state=random_state)
+
+    alpha = GridSearchCV(
+        Lasso(random_state=random_state),
+        param_grid={'alpha': np.arange(0.00001, 10, 500)},
+        cv=kf,
+        n_jobs=-1
+    )
+    alpha = alpha.fit(X, y)
+
+    model = Lasso(alpha=alpha.best_params_['alpha'], random_state=random_state)
+    model = model.fit(X, y)
+
+    sfm = SelectFromModel(model, prefit=True, max_features=20)
+    feature_mask = sfm.get_support()
+    return X.columns[feature_mask]
+
+
+def select_features_xgb(X: pd.DataFrame, y: pd.Series, random_state: int = 0) -> pd.Series:
+    """
+    Select features using XGBoost
+
+    :param X: DataFrame - input data
+    :param y: DataFrame - target data
+    :param random_state: int - random state
+    :return: Series - selected features
+    """
+    model = GradientBoostingClassifier(random_state=random_state, n_estimators=500, n_iter_no_change=10)
+    model = model.fit(X, y)
+    sfm = SelectFromModel(model, prefit=True, max_features=20)
     feature_mask = sfm.get_support()
     return X.columns[feature_mask]
 
 
 feature_selectors: Dict[str, SelectFeaturesMethod] = {
-    'random_forest': select_features_random_forest,
+    'forest': select_features_forest,
     'perceptron': select_features_perceptron,
-    'rfe_support_vector_machine': select_features_rfe_support_vector_machine,
-    'rfe_logistic_regression': select_features_rfe_logistic_regression,
-    'rfe_random_forest': select_features_rfe_random_forest,
+    'logistic_regression': select_features_logistic_regression,
+    'support_vector_machine': select_features_support_vector_machine,
+    'lasso': select_features_lasso,
+    'xgb': select_features_xgb,
+
+    # Recursive Feature Elimination is unusable due to the large number of features in the dataset
+    # 'rfe_support_vector_machine': select_features_rfe_support_vector_machine,
+    # 'rfe_logistic_regression': select_features_rfe_logistic_regression,
+    # 'rfe_random_forest': select_features_rfe_random_forest,
+    # 'rfecv_logistic_regression': select_features_rfecv_logistic_regression
 }
 
 ReduceDimensionalityMethod = Callable[[pd.DataFrame], pd.DataFrame]
@@ -289,7 +404,7 @@ def reduce_dimensionality_pca(X: pd.DataFrame) -> pd.DataFrame:
     :param X: DataFrame - input data
     :return: DataFrame - reduced data
     """
-    pca = PCA(n_components=100, random_state=0)
+    pca = PCA(n_components=100, random_state=0, svd_solver='full')
     return pd.DataFrame(pca.fit_transform(X))
 
 
@@ -315,7 +430,7 @@ def apply_model_logistic_regression(
     :param random_state: int - random state
     :return: Series - predictions on the test data
     """
-    model = LogisticRegression(max_iter=1000, random_state=random_state)
+    model = LogisticRegression(max_iter=10000, random_state=random_state, n_jobs=-1)
     model = model.fit(X, y)
     return model.predict(X_test)
 
@@ -335,7 +450,7 @@ def apply_model_random_forest(
     :param random_state: int - random state
     :return: Series - predictions on the test data
     """
-    model = RandomForestClassifier(n_jobs=-1, random_state=random_state)
+    model = RandomForestClassifier(n_jobs=-1, random_state=random_state, n_estimators=500)
     model = model.fit(X, y)
     return model.predict(X_test)
 
@@ -355,7 +470,7 @@ def apply_model_gradient_boosting_classifier(
     :param random_state: int - random state
     :return: Series - predictions on the test data
     """
-    model = HistGradientBoostingClassifier(random_state=random_state)
+    model = GradientBoostingClassifier(random_state=random_state, n_estimators=500, n_iter_no_change=10, max_depth=5)
     model = model.fit(X, y)
     return model.predict(X_test)
 
@@ -395,7 +510,7 @@ def apply_model_perceptron(
     :param random_state: int - random state
     :return: Series - predictions on the test data
     """
-    model = Perceptron(n_jobs=-1, random_state=random_state)
+    model = MLPClassifier(random_state=random_state, hidden_layer_sizes=(10, 100, 100, 10), max_iter=1000)
     model = model.fit(X, y)
     return model.predict(X_test)
 
