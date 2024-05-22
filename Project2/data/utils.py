@@ -396,23 +396,6 @@ feature_selectors: Dict[str, SelectFeaturesMethod] = {
     # 'rfecv_forest': select_features_rfecv_forest,
 }
 
-ReduceDimensionalityMethod = Callable[[pd.DataFrame], pd.DataFrame]
-
-
-def reduce_dimensionality_pca(X: pd.DataFrame) -> pd.DataFrame:
-    """
-    Reduce dimensionality using PCA
-
-    :param X: DataFrame - input data
-    :return: DataFrame - reduced data
-    """
-    pca = PCA(n_components=100, random_state=0, svd_solver='full')
-    return pd.DataFrame(pca.fit_transform(X))
-
-
-dimensionality_reducers: Dict[str, ReduceDimensionalityMethod] = {
-    'pca': reduce_dimensionality_pca
-}
 
 ApplyModelMethod = Callable[[pd.DataFrame, pd.Series, pd.DataFrame, Optional[int]], pd.Series]
 
@@ -492,7 +475,8 @@ def apply_model_support_vector_machine(
     :param random_state: int - random state
     :return: Series - predictions on the test data
     """
-    model = LinearSVC(random_state=random_state, dual=False)
+    # Prefer 1 over 0
+    model = SVC(random_state=random_state, kernel='rbf', class_weight={0: 1, 1: 10})
     model = model.fit(X, y)
     return model.predict(X_test)
 
@@ -542,8 +526,25 @@ model_appliers: Dict[str, ApplyModelMethod] = {
     'gradient_boosting_classifier': apply_model_gradient_boosting_classifier,
     'mlp': apply_model_mlp,
     'sgd': apply_model_sgd,
+    'support_vector_machine': apply_model_support_vector_machine,
 
     # Linear models perform poorly on the dataset
-    # 'support_vector_machine': apply_model_support_vector_machine,
     # 'logistic_regression': apply_model_logistic_regression,
 }
+
+
+def compute_score(
+        predicted: pd.Series,
+        actual: pd.Series,
+        feature_num: int
+) -> int:
+    """
+    Compute score based on the number of correctly predicted customers and the number of variables used.
+    :param predicted: pd.Series - Predicted values
+    :param actual: pd.Series - Actual values
+    :param feature_num: int - Number of variables used
+    :return: int - Score
+    """
+
+    correct_instances_num = len(np.intersect1d(np.where(predicted == 1), np.where(actual == 1)))
+    return max(0, 10 * correct_instances_num - 200 * feature_num)
