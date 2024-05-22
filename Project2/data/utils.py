@@ -17,6 +17,8 @@ from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.decomposition import PCA
 from sklearn.feature_selection import SelectFromModel
 from sklearn.linear_model import Perceptron
+from mrmr import mrmr_classif
+from skrebate import MultiSURFstar, SURF, ReliefF
 
 
 def cleanup_dataset_remove_features_vif(
@@ -194,23 +196,7 @@ def cleanup_dataset_remove_features_correlation(
 SelectFeaturesMethod = Callable[[pd.DataFrame, pd.Series, int], pd.Series]
 
 
-def select_features_rfe_logistic_regression(X: pd.DataFrame, y: pd.Series, random_state: int = 0) -> pd.Series:
-    """
-    Select features using Recursive Feature Elimination with Logistic Regression
-
-    :param X: DataFrame - input data
-    :param y: DataFrame - target data
-    :param random_state: int - random state
-    :return: Series - selected features
-    """
-    model = LogisticRegression(max_iter=1000, random_state=random_state, n_jobs=-1)
-    rfe = RFE(model, n_features_to_select=20)
-    rfe = rfe.fit(X, y)
-    feature_mask = rfe.support_
-    return X.columns[feature_mask]
-
-
-def select_features_rfe_random_forest(X: pd.DataFrame, y: pd.Series, random_state: int = 0) -> pd.Series:
+def select_features_rfecv_forest(X: pd.DataFrame, y: pd.Series, random_state: int = 0) -> pd.Series:
     """
     Select features using Recursive Feature Elimination with Random Forest
 
@@ -220,13 +206,22 @@ def select_features_rfe_random_forest(X: pd.DataFrame, y: pd.Series, random_stat
     :return: Series - selected features
     """
     model = RandomForestClassifier(n_jobs=-1, random_state=random_state)
-    rfe = RFE(model, n_features_to_select=20)
+    cv = StratifiedKFold(5, shuffle=True, random_state=random_state)
+    rfe = RFECV(
+        estimator=model,
+        step=0.1,
+        cv=cv,
+        scoring="accuracy",
+        min_features_to_select=1,
+        n_jobs=-1
+    )
+
     rfe = rfe.fit(X, y)
     feature_mask = rfe.support_
     return X.columns[feature_mask]
 
 
-def select_features_rfe_support_vector_machine(X: pd.DataFrame, y: pd.Series, random_state: int = 0) -> pd.Series:
+def select_features_rfecv_support_vector_machine(X: pd.DataFrame, y: pd.Series, random_state: int = 0) -> pd.Series:
     """
     Select features using Recursive Feature Elimination with Support Vector Machine
 
@@ -235,8 +230,16 @@ def select_features_rfe_support_vector_machine(X: pd.DataFrame, y: pd.Series, ra
     :param random_state: int - random state
     :return: Series - selected features
     """
-    model = LinearSVC(random_state=random_state, dual=False)
-    rfe = RFE(model, n_features_to_select=20)
+    model = SVC(kernel='rbf', random_state=random_state)
+    cv = StratifiedKFold(5, shuffle=True, random_state=random_state)
+    rfe = RFECV(
+        estimator=model,
+        step=0.1,
+        cv=cv,
+        scoring="accuracy",
+        min_features_to_select=1,
+        n_jobs=-1
+    )
 
     rfe = rfe.fit(X, y)
     feature_mask = rfe.support_
@@ -263,32 +266,7 @@ def select_features_forest(X: pd.DataFrame, y: pd.Series, random_state: int = 0)
     return X.columns[feature_mask]
 
 
-def select_features_rfecv_logistic_regression(X: pd.DataFrame, y: pd.Series, random_state: int = 0) -> pd.Series:
-    """
-    Select features using Recursive Feature Elimination with Cross-Validation
-
-    :param X: DataFrame - input data
-    :param y: DataFrame - target data
-    :param random_state: int - random state
-    :return: Series - selected features
-    """
-    model = LogisticRegression(max_iter=1000, random_state=random_state, n_jobs=1, solver='liblinear')
-    cv = StratifiedKFold(5, shuffle=True, random_state=random_state)
-    rfe = RFECV(
-        estimator=model,
-        step=1,
-        cv=cv,
-        scoring="accuracy",
-        min_features_to_select=1,
-        n_jobs=-1
-    )
-
-    rfe = rfe.fit(X, y)
-    feature_mask = rfe.get_support()
-    return X.columns[feature_mask]
-
-
-def select_features_perceptron(X: pd.DataFrame, y: pd.Series, random_state: int = 0) -> pd.Series:
+def select_features_rfecv_sgd(X: pd.DataFrame, y: pd.Series, random_state: int = 0) -> pd.Series:
     """
     Select features using Perceptron
 
@@ -298,25 +276,18 @@ def select_features_perceptron(X: pd.DataFrame, y: pd.Series, random_state: int 
     :return: Series - selected features
     """
     model = SGDClassifier(loss="perceptron", random_state=random_state, n_jobs=-1)
-    model = model.fit(X, y)
-    sfm = SelectFromModel(model, prefit=True, max_features=20)
-    feature_mask = sfm.get_support()
-    return X.columns[feature_mask]
+    cv = StratifiedKFold(5, shuffle=True, random_state=random_state)
+    rfe = RFECV(
+        estimator=model,
+        step=0.1,
+        cv=cv,
+        scoring="accuracy",
+        min_features_to_select=1,
+        n_jobs=-1
+    )
 
-
-def select_features_logistic_regression(X: pd.DataFrame, y: pd.Series, random_state: int = 0) -> pd.Series:
-    """
-    Select features using Logistic Regression
-
-    :param X: DataFrame - input data
-    :param y: DataFrame - target data
-    :param random_state: int - random state
-    :return: Series - selected features
-    """
-    model = LogisticRegression(max_iter=1000, random_state=random_state, n_jobs=-1)
-    model = model.fit(X, y)
-    sfm = SelectFromModel(model, prefit=True, max_features=20)
-    feature_mask = sfm.get_support()
+    rfe = rfe.fit(X, y)
+    feature_mask = rfe.get_support()
     return X.columns[feature_mask]
 
 
@@ -331,7 +302,7 @@ def select_features_support_vector_machine(X: pd.DataFrame, y: pd.Series, random
     """
     model = LinearSVC(random_state=random_state, dual=False)
     model = model.fit(X, y)
-    sfm = SelectFromModel(model, prefit=True, max_features=20)
+    sfm = SelectFromModel(model, prefit=True, max_features=20, importance_getter=lambda x: x.dual_coef_)
     feature_mask = sfm.get_support()
     return X.columns[feature_mask]
 
@@ -379,19 +350,50 @@ def select_features_xgb(X: pd.DataFrame, y: pd.Series, random_state: int = 0) ->
     return X.columns[feature_mask]
 
 
+def select_features_mrmr(X: pd.DataFrame, y: pd.Series, random_state: int = 0) -> pd.Series:
+    """
+    Select features using mRMR
+
+    :param X: DataFrame - input data
+    :param y: DataFrame - target data
+    :param random_state: int - random state
+    :return: Series - selected features
+    """
+    X_string_index = X.copy()
+    X_string_index.columns = [str(i) for i in range(X.shape[1])]
+    mrmr = mrmr_classif(X_string_index, y, n_jobs=-1, K=20, show_progress=False, relevance="ks")
+
+    return X.columns[[int(i) for i in mrmr]]
+
+
+def select_features_surf(X: pd.DataFrame, y: pd.Series, random_state: int = 0) -> pd.Series:
+    """
+    Select features using MultiSURFstar
+
+    :param X: DataFrame - input data
+    :param y: DataFrame - target data
+    :param random_state: int - random state
+    :return: Series - selected features
+    """
+    mss = ReliefF(n_features_to_select=20, n_jobs=-1)
+    mss.fit(X.values, y)
+    return X.columns[mss.top_features_]
+
+
 feature_selectors: Dict[str, SelectFeaturesMethod] = {
+    'mrmr': select_features_mrmr,
+    'surf': select_features_surf,
     'forest': select_features_forest,
-    'perceptron': select_features_perceptron,
-    'logistic_regression': select_features_logistic_regression,
-    'support_vector_machine': select_features_support_vector_machine,
-    'lasso': select_features_lasso,
     'xgb': select_features_xgb,
 
+    # Linear models perform poorly on the dataset
+    # 'lasso': select_features_lasso,
+    # 'support_vector_machine': select_features_support_vector_machine,
+
     # Recursive Feature Elimination is unusable due to the large number of features in the dataset
-    # 'rfe_support_vector_machine': select_features_rfe_support_vector_machine,
-    # 'rfe_logistic_regression': select_features_rfe_logistic_regression,
-    # 'rfe_random_forest': select_features_rfe_random_forest,
-    # 'rfecv_logistic_regression': select_features_rfecv_logistic_regression
+    # 'rfecv_support_vector_machine': select_features_rfecv_support_vector_machine,
+    # 'rfecv_sgd': select_features_rfecv_sgd,
+    # 'rfecv_forest': select_features_rfecv_forest,
 }
 
 ReduceDimensionalityMethod = Callable[[pd.DataFrame], pd.DataFrame]
@@ -495,7 +497,7 @@ def apply_model_support_vector_machine(
     return model.predict(X_test)
 
 
-def apply_model_perceptron(
+def apply_model_mlp(
         X: pd.DataFrame,
         y: pd.Series,
         X_test: pd.DataFrame,
@@ -510,15 +512,38 @@ def apply_model_perceptron(
     :param random_state: int - random state
     :return: Series - predictions on the test data
     """
-    model = MLPClassifier(random_state=random_state, hidden_layer_sizes=(10, 100, 100, 10), max_iter=1000)
+    model = MLPClassifier(random_state=random_state, hidden_layer_sizes=(10, 50, 50, 10), max_iter=1000)
+    model = model.fit(X, y)
+    return model.predict(X_test)
+
+
+def apply_model_sgd(
+        X: pd.DataFrame,
+        y: pd.Series,
+        X_test: pd.DataFrame,
+        random_state: int = 0
+) -> pd.Series:
+    """
+    Apply Perceptron model
+
+    :param X: DataFrame - input data
+    :param y: Series - target data
+    :param X_test: DataFrame - test data
+    :param random_state: int - random state
+    :return: Series - predictions on the test data
+    """
+    model = SGDClassifier(loss="perceptron", random_state=random_state, n_jobs=-1)
     model = model.fit(X, y)
     return model.predict(X_test)
 
 
 model_appliers: Dict[str, ApplyModelMethod] = {
-    'logistic_regression': apply_model_logistic_regression,
     'random_forest': apply_model_random_forest,
     'gradient_boosting_classifier': apply_model_gradient_boosting_classifier,
-    'support_vector_machine': apply_model_support_vector_machine,
-    'perceptron': apply_model_perceptron
+    'mlp': apply_model_mlp,
+    'sgd': apply_model_sgd,
+
+    # Linear models perform poorly on the dataset
+    # 'support_vector_machine': apply_model_support_vector_machine,
+    # 'logistic_regression': apply_model_logistic_regression,
 }
