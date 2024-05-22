@@ -398,6 +398,8 @@ feature_selectors: Dict[str, SelectFeaturesMethod] = {
 
 
 ApplyModelMethod = Callable[[pd.DataFrame, pd.Series, pd.DataFrame, Optional[int]], pd.Series]
+# ApplyModelMethod does not return predictions for the test data
+# It returns probability the customer will buy the product - probability of class 1 for each customer
 
 
 def apply_model_logistic_regression(
@@ -413,11 +415,12 @@ def apply_model_logistic_regression(
     :param y: Series - target data
     :param X_test: DataFrame - test data
     :param random_state: int - random state
-    :return: Series - predictions on the test data
+    :return: Series - probability of class 1 for each customer
     """
     model = LogisticRegression(max_iter=10000, random_state=random_state, n_jobs=-1)
     model = model.fit(X, y)
-    return model.predict(X_test)
+
+    return pd.Series(model.predict_proba(X_test)[:, 1], index=X_test.index)
 
 
 def apply_model_random_forest(
@@ -433,11 +436,12 @@ def apply_model_random_forest(
     :param y: Series - target data
     :param X_test: DataFrame - test data
     :param random_state: int - random state
-    :return: Series - predictions on the test data
+    :return: Series - probability of class 1 for each customer
     """
-    model = RandomForestClassifier(n_jobs=-1, random_state=random_state, n_estimators=500)
-    model = model.fit(X, y)
-    return model.predict(X_test)
+    model: RandomForestClassifier = RandomForestClassifier(n_jobs=-1, random_state=random_state, n_estimators=500)
+    model.fit(X, y)
+
+    return pd.Series(model.predict_proba(X_test)[:, 1], index=X_test.index)
 
 
 def apply_model_gradient_boosting_classifier(
@@ -453,11 +457,12 @@ def apply_model_gradient_boosting_classifier(
     :param y: Series - target data
     :param X_test: DataFrame - test data
     :param random_state: int - random state
-    :return: Series - predictions on the test data
+    :return: Series - probability of class 1 for each customer
     """
     model = GradientBoostingClassifier(random_state=random_state, n_estimators=500, n_iter_no_change=10, max_depth=5)
-    model = model.fit(X, y)
-    return model.predict(X_test)
+    model.fit(X, y)
+
+    return pd.Series(model.predict_proba(X_test)[:, 1], index=X_test.index)
 
 
 def apply_model_support_vector_machine(
@@ -473,12 +478,18 @@ def apply_model_support_vector_machine(
     :param y: Series - target data
     :param X_test: DataFrame - test data
     :param random_state: int - random state
-    :return: Series - predictions on the test data
+    :return: Series - probability of class 1 for each customer
     """
     # Prefer 1 over 0
-    model = SVC(random_state=random_state, kernel='rbf', class_weight={0: 1, 1: 10})
-    model = model.fit(X, y)
-    return model.predict(X_test)
+    model = SVC(
+        random_state=random_state,
+        kernel='rbf',
+        probability=True,
+        # class_weight={0: 1, 1: 10}
+    )
+    model.fit(X, y)
+
+    return pd.Series(model.predict_proba(X_test)[:, 1], index=X_test.index)
 
 
 def apply_model_mlp(
@@ -494,11 +505,12 @@ def apply_model_mlp(
     :param y: Series - target data
     :param X_test: DataFrame - test data
     :param random_state: int - random state
-    :return: Series - predictions on the test data
+    :return: Series - probability of class 1 for each customer
     """
     model = MLPClassifier(random_state=random_state, hidden_layer_sizes=(10, 50, 50, 10), max_iter=1000)
-    model = model.fit(X, y)
-    return model.predict(X_test)
+    model.fit(X, y)
+
+    return pd.Series(model.predict_proba(X_test)[:, 1], index=X_test.index)
 
 
 def apply_model_sgd(
@@ -508,17 +520,18 @@ def apply_model_sgd(
         random_state: int = 0
 ) -> pd.Series:
     """
-    Apply Perceptron model
+    Apply SGD model
 
     :param X: DataFrame - input data
     :param y: Series - target data
     :param X_test: DataFrame - test data
     :param random_state: int - random state
-    :return: Series - predictions on the test data
+    :return: Series - probability of class 1 for each customer
     """
-    model = SGDClassifier(loss="perceptron", random_state=random_state, n_jobs=-1)
-    model = model.fit(X, y)
-    return model.predict(X_test)
+    model = SGDClassifier(loss="modified_huber", random_state=random_state, n_jobs=-1)
+    model.fit(X, y)
+
+    return pd.Series(model.predict_proba(X_test)[:, 1], index=X_test.index)
 
 
 model_appliers: Dict[str, ApplyModelMethod] = {
@@ -527,24 +540,82 @@ model_appliers: Dict[str, ApplyModelMethod] = {
     'mlp': apply_model_mlp,
     'sgd': apply_model_sgd,
     'support_vector_machine': apply_model_support_vector_machine,
-
-    # Linear models perform poorly on the dataset
-    # 'logistic_regression': apply_model_logistic_regression,
+    'logistic_regression': apply_model_logistic_regression,
 }
+
+
+def select_customers(
+        predicted_probabilities: pd.Series,
+        threshold_num: int = 1000
+) -> pd.Series:
+    """
+    Select customers based on the predicted probabilities
+
+    :param predicted_probabilities: Series - predicted probabilities
+    :param threshold_num: int - number of customers to select
+    :return: Series - selected customers, a 0 or 1 for each customer
+    """
+    probability_threshold = predicted_probabilities.quantile(1 - threshold_num / len(predicted_probabilities))
+    return pd.Series(predicted_probabilities > probability_threshold, index=predicted_probabilities.index)
 
 
 def compute_score(
         predicted: pd.Series,
         actual: pd.Series,
-        feature_num: int
+        feature_num: int,
+        should_penalize_feature_num: bool = True
 ) -> int:
     """
     Compute score based on the number of correctly predicted customers and the number of variables used.
     :param predicted: pd.Series - Predicted values
     :param actual: pd.Series - Actual values
     :param feature_num: int - Number of variables used
+    :param should_penalize_feature_num: bool - Should penalize the number of variables used
     :return: int - Score
     """
 
     correct_instances_num = len(np.intersect1d(np.where(predicted == 1), np.where(actual == 1)))
-    return max(0, 10 * correct_instances_num - 200 * feature_num)
+    score = 10 * correct_instances_num + (
+        (-200 * feature_num)
+        if should_penalize_feature_num
+        else 0
+    )
+    return max(0, score)
+
+
+def train_and_evaluate_model(
+        model: ApplyModelMethod,
+        X_train: pd.DataFrame,
+        y_train: pd.Series,
+        X_test: pd.DataFrame,
+        y_test: pd.Series,
+        selected_features: List[str | int],
+        threshold_num: int = 200,
+        should_penalize_feature_num: bool = True,
+        random_state: int = 0,
+) -> int:
+    """
+    Train and evaluate the model
+    1. Select features using the selected feature selection method
+    2. Train the model
+    3. Select customers
+    4. Compute the score
+
+    :param model: ApplyModelMethod - model to apply
+    :param X_train: DataFrame - training data
+    :param y_train: Series - training target data
+    :param X_test: DataFrame - test data
+    :param y_test: Series - test target data
+    :param selected_features: List[str | int] - selected features
+    :param threshold_num: int - number of customers to select
+    :param should_penalize_feature_num: bool - should penalize the number of variables used
+    :param random_state: int - random state
+    :return: int - score
+    """
+    X_train = X_train[selected_features]
+    X_test = X_test[selected_features]
+
+    predicted_probabilities = model(X_train, y_train, X_test, random_state)
+    selected_customers = select_customers(predicted_probabilities, threshold_num)
+
+    return compute_score(selected_customers, y_test, len(selected_features), should_penalize_feature_num)
