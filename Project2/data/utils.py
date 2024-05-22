@@ -563,7 +563,8 @@ def compute_score(
         predicted: pd.Series,
         actual: pd.Series,
         feature_num: int,
-        should_penalize_feature_num: bool = True
+        should_penalize_feature_num: bool = True,
+        threshold_num: int = 1000
 ) -> int:
     """
     Compute score based on the number of correctly predicted customers and the number of variables used.
@@ -571,16 +572,28 @@ def compute_score(
     :param actual: pd.Series - Actual values
     :param feature_num: int - Number of variables used
     :param should_penalize_feature_num: bool - Should penalize the number of variables used
+    :param threshold_num: int - Number of customers to select
     :return: int - Score
     """
-
     correct_instances_num = len(np.intersect1d(np.where(predicted == 1), np.where(actual == 1)))
     score = 10 * correct_instances_num + (
-        (-200 * feature_num)
+        # Since 200 is for 1000 customers, we need to scale 200 to threshold_num
+        (-200 * feature_num * 200 / 1000)
         if should_penalize_feature_num
         else 0
     )
     return max(0, score)
+
+
+def max_score(
+        threshold_num: int = 1000
+) -> int:
+    """
+    Compute the maximum score that can be achieved
+    :param threshold_num: int - Number of customers to select
+    :return: int - Maximum score
+    """
+    return 10 * threshold_num
 
 
 def train_and_evaluate_model(
@@ -618,4 +631,10 @@ def train_and_evaluate_model(
     predicted_probabilities = model(X_train, y_train, X_test, random_state)
     selected_customers = select_customers(predicted_probabilities, threshold_num)
 
-    return compute_score(selected_customers, y_test, len(selected_features), should_penalize_feature_num)
+    return compute_score(
+        selected_customers,
+        y_test,
+        len(selected_features),
+        should_penalize_feature_num,
+        threshold_num
+    )
