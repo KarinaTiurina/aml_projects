@@ -2,8 +2,11 @@ from typing import Optional, List, Tuple, Callable, Dict
 
 import numpy as np
 import pandas as pd
+from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis
 from sklearn.model_selection import StratifiedKFold, GridSearchCV, KFold
 from sklearn.multiclass import OneVsRestClassifier
+from sklearn.naive_bayes import GaussianNB
+from sklearn.neighbors import KNeighborsClassifier
 from sklearn.neural_network import MLPClassifier
 from tqdm import tqdm
 from sklearn.preprocessing import StandardScaler
@@ -534,6 +537,69 @@ def apply_model_sgd(
     return pd.Series(model.predict_proba(X_test)[:, 1], index=X_test.index)
 
 
+def apply_model_knn(
+        X: pd.DataFrame,
+        y: pd.Series,
+        X_test: pd.DataFrame,
+        random_state: int = 0
+) -> pd.Series:
+    """
+    Apply K-Nearest Neighbors model
+
+    :param X: DataFrame - input data
+    :param y: Series - target
+    :param X_test: DataFrame - test data
+    :param random_state: int - random state
+    :return: Series - probability of class 1 for each customer
+    """
+    model = KNeighborsClassifier(n_jobs=-1, n_neighbors=250)
+    model.fit(X, y)
+
+    return pd.Series(model.predict_proba(X_test)[:, 1], index=X_test.index)
+
+
+def apply_model_qda(
+        X: pd.DataFrame,
+        y: pd.Series,
+        X_test: pd.DataFrame,
+        random_state: int = 0
+) -> pd.Series:
+    """
+    Apply Quadratic Discriminant Analysis model
+
+    :param X: DataFrame - input data
+    :param y: Series - target
+    :param X_test: DataFrame - test data
+    :param random_state: int - random state
+    :return: Series - probability of class 1 for each customer
+    """
+    model = QuadraticDiscriminantAnalysis()
+    model.fit(X, y)
+
+    return pd.Series(model.predict_proba(X_test)[:, 1], index=X_test.index)
+
+
+def apply_model_nb(
+        X: pd.DataFrame,
+        y: pd.Series,
+        X_test: pd.DataFrame,
+        random_state: int = 0
+) -> pd.Series:
+    """
+    Apply Naive Bayes model
+
+    :param X: DataFrame - input data
+    :param y: Series - target
+    :param X_test: DataFrame - test data
+    :param random_state: int - random state
+    :return: Series - probability of class 1 for each customer
+    """
+    model = GaussianNB()
+    model.fit(X, y)
+
+    return pd.Series(model.predict_proba(X_test)[:, 1], index=X_test.index)
+
+
 model_appliers: Dict[str, ApplyModelMethod] = {
     'random_forest': apply_model_random_forest,
     'gradient_boosting_classifier': apply_model_gradient_boosting_classifier,
@@ -541,6 +607,9 @@ model_appliers: Dict[str, ApplyModelMethod] = {
     'sgd': apply_model_sgd,
     'support_vector_machine': apply_model_support_vector_machine,
     'logistic_regression': apply_model_logistic_regression,
+    'knn': apply_model_knn,
+    'qda': apply_model_qda,
+    'nb': apply_model_nb
 }
 
 
