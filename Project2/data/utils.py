@@ -603,7 +603,6 @@ def train_and_evaluate_model(
         X_test: pd.DataFrame,
         y_test: pd.Series,
         selected_features: List[str | int],
-        threshold_num: int = 200,
         should_penalize_feature_num: bool = True,
         random_state: int = 0,
 ) -> int:
@@ -629,6 +628,7 @@ def train_and_evaluate_model(
     X_test = X_test[selected_features]
 
     predicted_probabilities = model(X_train, y_train, X_test, random_state)
+    threshold_num = np.sum(y_test.values)  # Number of customers to select is the number of customers who bought the product
     selected_customers = select_customers(predicted_probabilities, threshold_num)
 
     return compute_score(
