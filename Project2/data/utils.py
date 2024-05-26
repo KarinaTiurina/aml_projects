@@ -23,6 +23,8 @@ from sklearn.linear_model import Perceptron
 from mrmr import mrmr_classif
 from skrebate import MultiSURFstar, SURF, ReliefF
 
+from aml_projects.Project2.data.kdenb import KDENaiveBayesClassifier
+
 
 def cleanup_dataset_remove_features_vif(
         df: pd.DataFrame,
@@ -600,6 +602,31 @@ def apply_model_nb(
     return pd.Series(model.predict_proba(X_test)[:, 1], index=X_test.index)
 
 
+def apple_model_kdenb(
+        X: pd.DataFrame,
+        y: pd.Series,
+        X_test: pd.DataFrame,
+        random_state: int = 0
+) -> pd.Series:
+    """
+    Apply K-Nearest Neighbors model
+
+    :param X: DataFrame - input data
+    :param y: Series - target
+    :param X_test: DataFrame - test data
+    :param random_state: int - random state
+    :return: Series - probability of class 1 for each customer
+    """
+    model = KDENaiveBayesClassifier(
+        multi_bw=True,
+        bandwidth=[0.1, 0.5],
+        kernel='radial'
+    )
+    model.fit(X.values, y.values.ravel())
+
+    return pd.Series(model.predict_proba(X_test.values)[:, 1], index=X_test.index)
+
+
 model_appliers: Dict[str, ApplyModelMethod] = {
     'random_forest': apply_model_random_forest,
     'gradient_boosting_classifier': apply_model_gradient_boosting_classifier,
@@ -609,7 +636,8 @@ model_appliers: Dict[str, ApplyModelMethod] = {
     'logistic_regression': apply_model_logistic_regression,
     'knn': apply_model_knn,
     'qda': apply_model_qda,
-    'nb': apply_model_nb
+    'nb': apply_model_nb,
+    'kdenb': apple_model_kdenb,
 }
 
 
