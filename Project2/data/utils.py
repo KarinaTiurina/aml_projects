@@ -1,27 +1,23 @@
-from typing import Optional, List, Tuple, Callable, Dict
+from typing import Optional, List, Callable, Dict
 
 import numpy as np
 import pandas as pd
+from mrmr import mrmr_classif
 from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis
+from sklearn.ensemble import GradientBoostingClassifier
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.feature_selection import RFECV
+from sklearn.feature_selection import SelectFromModel
+from sklearn.linear_model import LogisticRegression, Lasso, SGDClassifier
 from sklearn.model_selection import StratifiedKFold, GridSearchCV, KFold
-from sklearn.multiclass import OneVsRestClassifier
 from sklearn.naive_bayes import GaussianNB
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.neural_network import MLPClassifier
-from tqdm import tqdm
 from sklearn.preprocessing import StandardScaler
-from statsmodels.stats.outliers_influence import variance_inflation_factor
-from sklearn.ensemble import RandomForestClassifier, HistGradientBoostingClassifier, BaggingClassifier, \
-    ExtraTreesClassifier
-from sklearn.feature_selection import RFE, RFECV
-from sklearn.linear_model import LogisticRegression, Lasso, OrthogonalMatchingPursuit, SGDClassifier
 from sklearn.svm import SVC, LinearSVC
-from sklearn.ensemble import GradientBoostingClassifier
-from sklearn.decomposition import PCA
-from sklearn.feature_selection import SelectFromModel
-from sklearn.linear_model import Perceptron
-from mrmr import mrmr_classif
-from skrebate import MultiSURFstar, SURF, ReliefF
+from skrebate import ReliefF
+from statsmodels.stats.outliers_influence import variance_inflation_factor
+from tqdm import tqdm
 
 from aml_projects.Project2.data.kdenb import KDENaiveBayesClassifier
 
@@ -675,7 +671,7 @@ def compute_score(
     correct_instances_num = len(np.intersect1d(np.where(predicted == 1), np.where(actual == 1)))
     score = 10 * correct_instances_num + (
         # Since 200 is for 1000 customers, we need to scale 200 to threshold_num
-        (-200 * feature_num * 200 / 1000)
+        (-200 * feature_num * threshold_num / 1000)
         if should_penalize_feature_num
         else 0
     )
