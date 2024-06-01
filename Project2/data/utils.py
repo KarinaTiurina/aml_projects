@@ -378,7 +378,8 @@ def select_features_surf(X: pd.DataFrame, y: pd.Series, random_state: int = 0) -
     """
     mss = ReliefF(n_features_to_select=20, n_jobs=-1)
     mss.fit(X.values, y)
-    return X.columns[mss.top_features_]
+    top_features = mss.top_features_
+    return X.columns[top_features[:20]]
 
 
 feature_selectors: Dict[str, SelectFeaturesMethod] = {
