@@ -668,7 +668,7 @@ def compute_score(
     :param threshold_num: int - Number of customers to select
     :return: int - Score
     """
-    correct_instances_num = len(np.intersect1d(np.where(predicted == 1), np.where(actual == 1)))
+    correct_instances_num = len(np.intersect1d(np.where(predicted.values == 1), np.where(actual.values == 1)))
     score = 10 * correct_instances_num + (
         # Since 200 is for 1000 customers, we need to scale 200 to threshold_num
         (-200 * feature_num * threshold_num / 1000)
@@ -689,6 +689,31 @@ def max_score(
     return 10 * threshold_num
 
 
+GenerateFeatureInteractionsMethod = Callable[[pd.DataFrame], pd.DataFrame]
+
+
+def generate_feature_interactions_noop(X: pd.DataFrame) -> pd.DataFrame:
+    """
+    No operation function to generate feature interactions
+    :param X: DataFrame - input data
+    :return: DataFrame - input data
+    """
+    return X
+
+
+def generate_feature_interactions_quadratic(X: pd.DataFrame) -> pd.DataFrame:
+    """
+    Generate quadratic feature interactions
+    :param X: DataFrame - input data
+    :return: DataFrame - input data with quadratic feature interactions
+    """
+    return pd.DataFrame(
+        np.hstack([X.values, X.values ** 2]),
+        columns=list(map(str, X.columns)) + [f"{col}^2" for col in X.columns],
+        index=X.index
+    )
+
+
 def train_and_evaluate_model(
         model: ApplyModelMethod,
         X_train: pd.DataFrame,
@@ -696,6 +721,7 @@ def train_and_evaluate_model(
         X_test: pd.DataFrame,
         y_test: pd.Series,
         selected_features: List[str | int],
+        generate_feature_interactions: GenerateFeatureInteractionsMethod = generate_feature_interactions_noop,
         should_penalize_feature_num: bool = True,
         random_state: int = 0,
 ) -> int:
@@ -719,6 +745,9 @@ def train_and_evaluate_model(
     """
     X_train = X_train[selected_features]
     X_test = X_test[selected_features]
+
+    X_train = generate_feature_interactions(X_train)
+    X_test = generate_feature_interactions(X_test)
 
     predicted_probabilities = model(X_train, y_train, X_test, random_state)
     threshold_num = np.sum(y_test.values)  # Number of customers to select is the number of customers who bought the product
