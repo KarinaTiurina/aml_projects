@@ -739,7 +739,7 @@ def train_and_evaluate_model(
     :param X_test: DataFrame - test data
     :param y_test: Series - test target data
     :param selected_features: List[str | int] - selected features
-    :param threshold_num: int - number of customers to select
+    :param generate_feature_interactions: GenerateFeatureInteractionsMethod - function to generate feature interactions
     :param should_penalize_feature_num: bool - should penalize the number of variables used
     :param random_state: int - random state
     :return: int - score
