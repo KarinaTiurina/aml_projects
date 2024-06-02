@@ -5,6 +5,33 @@ import numpy as np
 import pandas as pd
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+
+
+def cleanup_dataset_apply_standard_scaler(
+        df: pd.DataFrame,
+        target: Optional[str | int] = None
+) -> pd.DataFrame:
+    """
+    Apply StandardScaler to the features
+
+    :param df: DataFrame - input data
+    :param target: str - target column name
+
+    :return: DataFrame - cleaned data
+    """
+    df = df.copy()
+
+    features = list(df.columns)
+    if target is not None:
+        features.remove(target)
+    scaler = StandardScaler()
+
+    if target is not None:
+        df[features] = scaler.fit_transform(df[features])
+
+    return df
+
 
 ApplyModelMethod = Callable[[pd.DataFrame, pd.Series, pd.DataFrame, Optional[int]], pd.Series]
 
